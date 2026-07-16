@@ -1184,6 +1184,9 @@ function renderMonthly(){
   drawCohortRate(stats);
   drawCohortWaterfall(stats);
   if(sel.length) drawCompare(sel);
+
+  /* --- NEW: Monthly Collection Analysis --- */
+  renderCollectionAnalysis(months);
 }
 
 function drawCohortRate(stats){
@@ -1208,6 +1211,145 @@ function drawCompare(sel){
     options:{scales:{y:{grid:{color:"#F1F0F6"}},y2:{position:"right",min:0,max:100,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
 }
 
+
+/* ---------- Monthly Collection Analysis ----------
+   Three views per month:
+   1. Delivered in the month (by delivery date)
+   2. Collected from same month's deliveries only
+   3. Total collections received during the month (by collection date, any delivery month) */
+
+function collectionAnalysis(mk){
+  const ms=monthStartDay(mk), me=monthEndDay(mk);
+  let orders=State.orders;
+  if(State.tpl) orders=orders.filter(r=>r.tpl===State.tpl);
+  if(State.channel){
+    orders=orders.filter(r=>{
+      const ch=(r.mp==null&&r.retail==null)?"":(r.mp!=null&&r.retail!=null)?((r.mp>=r.retail)?"MP":"Retail"):(r.mp!=null?"MP":"Retail");
+      return ch===State.channel;
+    });
+  }
+  // 1. Delivered in this month
+  const delivered=orders.filter(r=>r.dd!=null&&r.dd>=ms&&r.dd<=me);
+  const delN=delivered.length;
+  const delAmt=sum(delivered.map(r=>r.grand||0));
+
+  // 2. Collected from this month's deliveries (delivered AND collected in same month)
+  const collSame=delivered.filter(r=>r.comment==="Collected"&&r.cd!=null&&r.cd>=ms&&r.cd<=me);
+  const collSameN=collSame.length;
+  const collSameAmt=sum(collSame.map(r=>r.coll||0));
+  const collSameGrand=sum(collSame.map(r=>r.grand||0));
+
+  // Also count all eventually collected from this delivery month (regardless of collection date)
+  const collFromDel=delivered.filter(r=>r.comment==="Collected");
+  const collFromDelN=collFromDel.length;
+  const collFromDelAmt=sum(collFromDel.map(r=>r.coll||0));
+
+  // Not yet collected from this month's deliveries
+  const ncFromDel=delivered.filter(r=>r.comment==="Not Collected");
+  const ncFromDelN=ncFromDel.length;
+  const ncFromDelAmt=sum(ncFromDel.map(r=>r.grand||0));
+
+  // 3. Total collections received during this month (collection date in this month, any delivery month)
+  const allCollInMonth=orders.filter(r=>r.comment==="Collected"&&r.cd!=null&&r.cd>=ms&&r.cd<=me);
+  const totalCollN=allCollInMonth.length;
+  const totalCollAmt=sum(allCollInMonth.map(r=>r.coll||0));
+  const totalCollGrand=sum(allCollInMonth.map(r=>r.grand||0));
+
+  // Breakdown: how much of totalColl came from same-month deliveries vs previous months
+  const fromPrev=allCollInMonth.filter(r=>r.dd!=null&&(r.dd<ms));
+  const fromPrevN=fromPrev.length;
+  const fromPrevAmt=sum(fromPrev.map(r=>r.coll||0));
+
+  // Cash gap: delivered amount vs actually received in the same month
+  const cashGap=delAmt-totalCollAmt;
+
+  return {mk,delN,delAmt,
+    collSameN,collSameAmt,collSameGrand,
+    collFromDelN,collFromDelAmt,ncFromDelN,ncFromDelAmt,
+    totalCollN,totalCollAmt,totalCollGrand,
+    fromPrevN,fromPrevAmt,
+    fromSameN:collSameN,fromSameAmt:collSameAmt,
+    sameMonthRate:delAmt?collSameGrand/delAmt:null,
+    eventualRate:delAmt?collFromDelAmt/delAmt:null,
+    cashGap};
+}
+
+function renderCollectionAnalysis(months){
+  const stats=months.map(m=>collectionAnalysis(m));
+  const agg=(k)=>sum(stats.map(s=>s[k]||0));
+
+  // Per-month cards
+  const cards=stats.map(s=>{
+    const lbl=monthLabel(s.mk);
+    return `<details style="margin:6px 0" class="coll-analysis-detail">
+      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">${lbl}</summary>
+      <div style="margin:10px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+        <div class="kpi"><div class="l">Delivered in ${lbl}</div><div class="v">${fmtInt(s.delN)} orders</div><div class="s">${fmtEGP(s.delAmt)}</div></div>
+        <div class="kpi"><div class="l">Collected from ${lbl} deliveries</div><div class="v good">${fmtInt(s.collFromDelN)} orders</div><div class="s">${fmtEGP(s.collFromDelAmt)} · Rate: ${fmtPct(s.eventualRate)}</div></div>
+        <div class="kpi"><div class="l">Not yet collected from ${lbl}</div><div class="v ${s.ncFromDelN?"bad":""}">${fmtInt(s.ncFromDelN)} orders</div><div class="s">${fmtEGP(s.ncFromDelAmt)}</div></div>
+        <div class="kpi"><div class="l">Collected in same month</div><div class="v good">${fmtInt(s.collSameN)} orders</div><div class="s">${fmtEGP(s.collSameAmt)} · Same-month rate: ${fmtPct(s.sameMonthRate)}</div></div>
+        <div class="kpi"><div class="l">Total collections received in ${lbl}</div><div class="v" style="color:var(--violet)">${fmtInt(s.totalCollN)} orders</div><div class="s">${fmtEGP(s.totalCollAmt)}</div></div>
+        <div class="kpi"><div class="l">↳ From previous months' deliveries</div><div class="v">${fmtInt(s.fromPrevN)} orders</div><div class="s">${fmtEGP(s.fromPrevAmt)}</div></div>
+        <div class="kpi"><div class="l">Cash gap (delivered − received)</div><div class="v ${s.cashGap>0?"bad":"good"}">${fmtEGP(s.cashGap)}</div></div>
+      </div>
+    </details>`;
+  }).join("");
+
+  // Summary table
+  const tRow=(s,name,total)=>`<tr${total?' class="total"':""}>
+    <td>${name}</td>
+    <td>${fmtInt(s.delN)}</td><td>${fmtEGP(s.delAmt)}</td>
+    <td class="good">${fmtInt(s.collSameN)}</td><td class="good">${fmtEGP(s.collSameAmt)}</td>
+    <td class="${rateCls(s.sameMonthRate)}">${fmtPct(s.sameMonthRate)}</td>
+    <td style="color:var(--violet)">${fmtInt(s.totalCollN)}</td><td style="color:var(--violet)">${fmtEGP(s.totalCollAmt)}</td>
+    <td>${fmtInt(s.fromPrevN)}</td><td>${fmtEGP(s.fromPrevAmt)}</td>
+    <td class="${s.cashGap>0?"bad":"good"}">${fmtEGP(s.cashGap)}</td></tr>`;
+  const tot={delN:agg("delN"),delAmt:agg("delAmt"),
+    collSameN:agg("collSameN"),collSameAmt:agg("collSameAmt"),
+    totalCollN:agg("totalCollN"),totalCollAmt:agg("totalCollAmt"),
+    fromPrevN:agg("fromPrevN"),fromPrevAmt:agg("fromPrevAmt"),
+    cashGap:agg("cashGap")};
+  tot.sameMonthRate=tot.delAmt?sum(stats.map(s=>s.collSameGrand||0))/tot.delAmt:null;
+  const summBody=stats.map(s=>tRow(s,monthLabel(s.mk))).join("")+tRow(tot,"TOTAL",true);
+
+  const html=`<h2 class="sec" style="margin-top:30px">Monthly Collection Analysis</h2>
+    <div class="sec-note">Three perspectives per month: <b>(1)</b> What was delivered, <b>(2)</b> How much of that month's deliveries was collected,
+    <b>(3)</b> How much cash was actually received during the month (from any delivery month).<br>
+    Example for February: "Total collections received" includes orders delivered in December but collected in February.</div>`+
+    T(["Month","Delivered","Delivered (EGP)",
+      "Collected from Same Month","Same Month (EGP)","Same-Month Rate %",
+      "Total Received in Month","Total Received (EGP)",
+      "↳ From Previous Months","↳ Prev Months (EGP)",
+      "Cash Gap (EGP)"],summBody)+
+    `<div class="chartrow">
+       <div class="chartbox"><h3>Delivered vs Total Received (EGP)</h3><canvas id="chCollAnalysis" height="230"></canvas></div>
+       <div class="chartbox"><h3>Collections breakdown by source</h3><canvas id="chCollSource" height="230"></canvas></div>
+     </div>
+     <h2 class="sec">Monthly detail</h2>
+     <div class="sec-note">Expand any month for the full breakdown</div>`+cards;
+
+  // Append to monthly pane
+  document.getElementById("pane-monthly").insertAdjacentHTML("beforeend",html);
+
+  // Register for export
+  reg("Collection Analysis",[["Month","Delivered","Delivered EGP","Collected Same Month","Same Month EGP","Same-Month Rate",
+    "Total Received","Total Received EGP","From Prev Months","Prev Months EGP","Cash Gap"],
+    ...stats.map(s=>[monthLabel(s.mk),s.delN,s.delAmt,s.collSameN,s.collSameAmt,s.sameMonthRate,
+      s.totalCollN,s.totalCollAmt,s.fromPrevN,s.fromPrevAmt,s.cashGap]),
+    ["TOTAL",tot.delN,tot.delAmt,tot.collSameN,tot.collSameAmt,tot.sameMonthRate,
+      tot.totalCollN,tot.totalCollAmt,tot.fromPrevN,tot.fromPrevAmt,tot.cashGap]]);
+
+  // Charts
+  chart("chCollAnalysis",{type:"bar",data:{labels:stats.map(s=>monthLabel(s.mk)),datasets:[
+    {label:"Delivered (EGP)",data:stats.map(s=>s.delAmt),backgroundColor:"rgba(126,0,225,.2)",borderColor:PAL.blue,borderWidth:1},
+    {label:"Total received in month (EGP)",data:stats.map(s=>s.totalCollAmt),backgroundColor:"rgba(0,241,89,.2)",borderColor:PAL.green,borderWidth:1}]},
+    options:{scales:{y:{grid:{color:"#F1F0F6"}}},plugins:{legend:{position:"top"}}}});
+
+  chart("chCollSource",{type:"bar",data:{labels:stats.map(s=>monthLabel(s.mk)),datasets:[
+    {label:"From same month deliveries (EGP)",data:stats.map(s=>s.fromSameAmt),backgroundColor:PAL.green,stack:"a"},
+    {label:"From previous months (EGP)",data:stats.map(s=>s.fromPrevAmt),backgroundColor:PAL.blue,stack:"a"}]},
+    options:{scales:{y:{stacked:true,grid:{color:"#F1F0F6"}}},plugins:{legend:{position:"top"}}}});
+}
 
 /* ---------- Risk Breakdown ---------- */
 function renderRisk(){
