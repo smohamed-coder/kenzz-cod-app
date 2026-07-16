@@ -195,18 +195,6 @@ footer{padding:14px 24px;color:var(--faint);font-size:11.5px;border-top:1px soli
 </div>
 
 <!-- Setup Screen (shown if Supabase not configured) -->
-<div id="setupScreen" style="display:none;position:fixed;inset:0;background:#F5F4FA;z-index:200;display:flex;align-items:center;justify-content:center">
-  <div style="background:#fff;border:1px solid #E8E5F0;border-radius:16px;padding:40px;width:480px;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.08)">
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px;color:#1A1A2E">⚙ First-time Setup</h2>
-    <p style="color:#6B6B80;font-size:13px;margin-bottom:20px;line-height:1.5">Enter your Supabase project credentials. You only need to do this once — they're saved in this browser.</p>
-    <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9494A8;font-weight:600">Supabase Project URL</label>
-    <input type="text" id="setupUrl" placeholder="https://xxxxx.supabase.co" style="width:100%;padding:10px 14px;border:1px solid #D9D5E3;border-radius:8px;font-size:13px;margin:4px 0 12px;outline:none;font-family:'JetBrains Mono',monospace">
-    <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9494A8;font-weight:600">Supabase Anon Key</label>
-    <input type="text" id="setupKey" placeholder="eyJhbGciOiJIUzI1NiIs..." style="width:100%;padding:10px 14px;border:1px solid #D9D5E3;border-radius:8px;font-size:13px;margin:4px 0 16px;outline:none;font-family:'JetBrains Mono',monospace">
-    <button id="btnSetup" style="width:100%;padding:11px;background:#7E00E1;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Save & Continue</button>
-    <p style="color:#9494A8;font-size:11px;margin-top:12px;line-height:1.5">Find these in your Supabase dashboard → Settings → API. The anon key is safe to use in the browser — Row Level Security protects your data.</p>
-  </div>
-</div>
 
 <header>
   <div class="hd-top">
@@ -314,10 +302,11 @@ let supaClient=null;
 let currentUser=null;
 let currentRole="viewer";
 
+const SB_URL="https://ncozfasogfmyxkbuxgxa.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jb3pmYXNvZ2ZteXhrYnV4Z3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODgxNjksImV4cCI6MjA5OTc2NDE2OX0.CM9TiQqbIQ567AH80MsoSUtgvi0gPyKIKpuCguSKy8I";
+
 function getSupaConfig(){
-  const url=localStorage.getItem("sb_url");
-  const key=localStorage.getItem("sb_key");
-  return (url&&key)?{url,key}:null;
+  return {url:SB_URL,key:SB_KEY};
 }
 
 function initSupabase(url,key){
@@ -433,28 +422,13 @@ const DB=(()=>{
 })();
 
 /* Auth UI */
-function showSetup(){
-  document.getElementById("setupScreen").style.display="flex";
-  document.getElementById("loginScreen").style.display="none";
-}
+function showSetup(){ showLogin(); }
 function showLogin(){
   document.getElementById("loginScreen").style.display="flex";
-  document.getElementById("setupScreen").style.display="none";
 }
 function showApp(){
   document.getElementById("loginScreen").style.display="none";
-  document.getElementById("setupScreen").style.display="none";
 }
-
-document.getElementById("btnSetup").addEventListener("click",()=>{
-  const url=document.getElementById("setupUrl").value.trim();
-  const key=document.getElementById("setupKey").value.trim();
-  if(!url||!key){alert("Both fields are required.");return;}
-  localStorage.setItem("sb_url",url);
-  localStorage.setItem("sb_key",key);
-  initSupabase(url,key);
-  showLogin();
-});
 
 document.getElementById("btnLogin").addEventListener("click",async()=>{
   const email=document.getElementById("loginEmail").value.trim();
@@ -2163,8 +2137,8 @@ document.addEventListener("click",async(ev)=>{
   btn.disabled=true;btn.textContent="Creating…";
   // Use a separate client so we don't log out the current admin
   const tmpClient=supabase.createClient(
-    localStorage.getItem("sb_url"),
-    localStorage.getItem("sb_key"),
+    SB_URL,
+    SB_KEY,
     {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"_tmp_signup"}}
   );
   const {data,error}=await tmpClient.auth.signUp({email,password:pass});
