@@ -210,7 +210,7 @@ footer{padding:14px 24px;color:var(--faint);font-size:11.5px;border-top:1px soli
 
 <header>
   <div class="hd-top">
-    <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 255.6 208.3" class="logo-icon"><path fill="#00f159" d="M199.2,138.4c-6-16.1-17.5-27.8-33.1-33.6l-2.2-.8,5.1-3.8c18.6-13.7,35-31.5,47.5-51.4l3.2-5,.7,1.9c6,16.1,17.5,27.8,33.1,33.6l2.2.8-5.1,3.8c-18.6,13.7-35,31.5-47.5,51.4l-3.2,5-.7-1.9Z"/><path fill="#7E00E1" d="M127.5,110.1l74.9,90-47.2,7.9c-12.2,2-24.7-3.1-32.3-13.2l-53.8-63.2-5.3,29c-2.2,13.6-12.8,24.2-26.5,26.4L0,192.9,22.9,50.5c2.2-13.9,13.1-24.5,27-26.5l37.7-5.5-11.3,71.3L121.1,23.8c4.9-7.8,13-13.1,22.2-14.5L200,0l-72.5,110.1Z"/></svg><div><span class="k">KENZZ</span> <span class="sub" style="color:var(--green);font-family:var(--mono);font-weight:600">v2.0</span><div class="sub">COD Cash Cycle · Collections · 3PL · Payments</div></div></div>
+    <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 255.6 208.3" class="logo-icon"><path fill="#00f159" d="M199.2,138.4c-6-16.1-17.5-27.8-33.1-33.6l-2.2-.8,5.1-3.8c18.6-13.7,35-31.5,47.5-51.4l3.2-5,.7,1.9c6,16.1,17.5,27.8,33.1,33.6l2.2.8-5.1,3.8c-18.6,13.7-35,31.5-47.5,51.4l-3.2,5-.7-1.9Z"/><path fill="#7E00E1" d="M127.5,110.1l74.9,90-47.2,7.9c-12.2,2-24.7-3.1-32.3-13.2l-53.8-63.2-5.3,29c-2.2,13.6-12.8,24.2-26.5,26.4L0,192.9,22.9,50.5c2.2-13.9,13.1-24.5,27-26.5l37.7-5.5-11.3,71.3L121.1,23.8c4.9-7.8,13-13.1,22.2-14.5L200,0l-72.5,110.1Z"/></svg><div><span class="k">KENZZ</span> <span class="sub" style="color:var(--green);font-family:var(--mono);font-weight:600">v2.1</span><div class="sub">COD Cash Cycle · Collections · 3PL · Payments</div></div></div>
     <div style="display:flex;align-items:center;gap:10px"><div class="snapshot" id="snapshotLbl">No data loaded</div><div id="userBadge" style="font-size:12px;font-family:var(--mono);color:var(--dim)"></div><button class="btn" id="btnLogout" style="display:none;padding:5px 10px;font-size:11px">Logout</button></div>
   </div>
   <div class="cycle-strip" id="cycleStrip"></div>
@@ -2152,11 +2152,15 @@ $("#dbFileInput").addEventListener("change",async e=>{
 
 <script>
 /* User management (admin only) */
-document.getElementById("btnCreateUser")?.addEventListener("click",async()=>{
+document.addEventListener("click",async(ev)=>{
+  const btn=ev.target.closest("#btnCreateUser");
+  if(!btn) return;
+  try{
   if(currentRole!=="admin"){alert("Admin only.");return;}
   const email=document.getElementById("newUserEmail").value.trim();
   const pass=document.getElementById("newUserPass").value;
   if(!email||pass.length<6){alert("Enter a valid email and password (min 6 characters).");return;}
+  btn.disabled=true;btn.textContent="Creating…";
   // Use a separate client so we don't log out the current admin
   const tmpClient=supabase.createClient(
     localStorage.getItem("sb_url"),
@@ -2164,11 +2168,14 @@ document.getElementById("btnCreateUser")?.addEventListener("click",async()=>{
     {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"_tmp_signup"}}
   );
   const {data,error}=await tmpClient.auth.signUp({email,password:pass});
+  btn.disabled=false;btn.textContent="+ Create Viewer";
   if(error){alert("Failed: "+error.message);return;}
-  alert("Viewer account created for "+email+".\nThey can now log in at this URL.");
+  if(data?.user?.identities?.length===0){alert("This email is already registered.");return;}
+  alert("Viewer account created for "+email+".\nThey can now log in at:\n"+location.href);
   document.getElementById("newUserEmail").value="";
   document.getElementById("newUserPass").value="";
-  renderUsersList();
+  await renderUsersList();
+  }catch(e){btn.disabled=false;btn.textContent="+ Create Viewer";alert("Error creating viewer: "+e.message);}
 });
 
 async function renderUsersList(){
