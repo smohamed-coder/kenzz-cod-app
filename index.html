@@ -371,7 +371,7 @@ const DB=(()=>{
   async function getAll(store){
     if(store==="orders"){
       // fetch all orders (paginated for large datasets)
-      let all=[],from=0;const PAGE=10000;
+      let all=[],from=0;const PAGE=1000;
       while(true){
         const {data,error}=await supaClient.from("orders").select("*").range(from,from+PAGE-1);
         if(error) throw new Error(error.message);
@@ -2157,8 +2157,13 @@ document.getElementById("btnCreateUser")?.addEventListener("click",async()=>{
   const email=document.getElementById("newUserEmail").value.trim();
   const pass=document.getElementById("newUserPass").value;
   if(!email||pass.length<6){alert("Enter a valid email and password (min 6 characters).");return;}
-  // Use Supabase admin invite or signUp
-  const {data,error}=await supaClient.auth.signUp({email,password:pass});
+  // Use a separate client so we don't log out the current admin
+  const tmpClient=supabase.createClient(
+    localStorage.getItem("sb_url"),
+    localStorage.getItem("sb_key"),
+    {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"_tmp_signup"}}
+  );
+  const {data,error}=await tmpClient.auth.signUp({email,password:pass});
   if(error){alert("Failed: "+error.message);return;}
   alert("Viewer account created for "+email+".\nThey can now log in at this URL.");
   document.getElementById("newUserEmail").value="";
