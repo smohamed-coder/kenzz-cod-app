@@ -1,0 +1,16 @@
+{
+  "name": "kenzz-cod-cash-cycle",
+  "version": "2.0.0",
+  "description": "Kenzz COD Cash Cycle — Collections, 3PL & Seller Payment Analysis",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "xlsx": "^0.18.5"
+  }
+}

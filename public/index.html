@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenzz — COD Cash Cycle</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root{
+  --violet:#7E00E1; --violet-dark:#1A0030; --violet-light:#F3E8FF; --violet-mid:#D8B4FE; --violet-bg:rgba(126,0,225,.06);
+  --green:#00C748; --green-dark:#059033; --green-light:#ECFDF5; --green-bg:rgba(0,199,72,.08);
+  --red:#FF3654; --red-light:#FFF1F2; --red-bg:rgba(255,54,84,.07);
+  --amber:#FFA900; --amber-light:#FFFBEB; --amber-bg:rgba(255,169,0,.08);
+  --yellow:#EEFF12; --blue:#3B82F6;
+  --ink:#FFFFFF; --surface:#FFFFFF; --surface2:#F8F7FC; --surface3:#F1F0F6;
+  --line:#E8E5F0; --line2:#D9D5E3;
+  --text:#1A1A2E; --dim:#6B6B80; --faint:#9494A8;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#F5F4FA;color:var(--text);font-family:var(--sans);font-size:14px}
+body{min-height:100vh}
+::-webkit-scrollbar{height:8px;width:8px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- Header (dark violet with glow) ---------- */
+header{background:#2D0066;border-bottom:none;position:relative;overflow:hidden}
+header::before{display:none}
+header::after{display:none}
+.hd-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 24px 6px;position:relative}
+.brand{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:auto;flex-shrink:0}
+.brand .k{font-weight:800;font-size:20px;letter-spacing:.6px;color:#FFFFFF}
+.brand .sub{color:rgba(255,255,255,.55);font-size:11.5px;letter-spacing:.2px;font-weight:500}
+.snapshot{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.6)}
+.snapshot b{color:#00F159;font-weight:600}
+
+.cycle-strip{display:flex;align-items:stretch;gap:0;padding:8px 24px 14px;overflow-x:auto;position:relative}
+.cyc-node{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;min-width:150px;backdrop-filter:blur(8px)}
+.cyc-node .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.45);font-weight:600}
+.cyc-node .val{font-family:var(--mono);font-size:17px;font-weight:700;margin-top:2px;color:#fff}
+.cyc-node .val small{font-size:11px;color:rgba(255,255,255,.5);font-weight:400;margin-left:4px}
+.cyc-arrow{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 10px;min-width:86px}
+.cyc-arrow .days{font-family:var(--mono);font-size:12.5px;font-weight:600;color:#D8B4FE}
+.cyc-arrow .line{width:100%;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.2) 0 6px,transparent 6px 11px);position:relative;margin:3px 0}
+.cyc-arrow .line:after{content:'';position:absolute;right:-1px;top:-3px;border:4px solid transparent;border-left-color:rgba(255,255,255,.2)}
+.cyc-arrow .tag{font-size:9.5px;color:rgba(255,255,255,.4);letter-spacing:.4px}
+
+/* ---------- Controls (white) ---------- */
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:40;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ctl{display:flex;flex-direction:column;gap:3px}
+.ctl label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);font-weight:600}
+select,input[type=text]{background:var(--surface);color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:7px 12px;font-family:var(--sans);font-size:13px;outline:none;min-width:130px;transition:border-color .15s}
+select:focus,input[type=text]:focus{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-bg)}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.seg button{background:var(--surface);color:var(--dim);border:none;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.seg button.on{background:var(--violet);color:#fff}
+.btn{background:var(--surface);border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn:hover{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-bg)}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:var(--red-light)}
+.spacer{flex:1}
+
+/* ---------- Tabs ---------- */
+nav.tabs{display:flex;gap:0;padding:0 24px;border-bottom:2px solid var(--line);background:var(--surface);overflow-x:auto}
+nav.tabs button{background:none;border:none;color:var(--dim);padding:12px 16px 10px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:var(--sans);transition:color .15s}
+nav.tabs button.on{color:var(--violet);border-bottom-color:var(--violet)}
+nav.tabs button:hover{color:var(--text)}
+
+main{padding:18px 24px 60px;max-width:1600px;margin:0 auto}
+.tabpane{display:none}
+.tabpane.on{display:block}
+
+h2.sec{font-size:15px;font-weight:700;margin:26px 0 6px;color:var(--text)}
+h2.sec:first-child{margin-top:4px}
+.sec-note{color:var(--dim);font-size:12px;margin-bottom:10px;line-height:1.5}
+.added-note{color:var(--amber);font-size:11.5px}
+
+/* ---------- Tables ---------- */
+.twrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+table{border-collapse:collapse;width:100%;font-size:12.8px}
+thead th{position:sticky;top:0;background:var(--violet);color:#fff;font-weight:600;text-align:right;padding:10px 12px;white-space:nowrap;font-size:11px;letter-spacing:.4px;text-transform:uppercase;z-index:5}
+thead th:first-child{text-align:left}
+td:first-child{text-align:left}
+thead th.sortable{cursor:pointer}
+thead th.sortable:hover{background:#6D00C7}
+tbody td{padding:7px 12px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--mono);font-size:12.3px;white-space:nowrap}
+tbody td:first-child{font-family:var(--sans);font-weight:500}
+tbody tr:hover{background:var(--violet-bg)}
+tr.total td{background:var(--surface2);font-weight:700;border-top:2px solid var(--violet);color:var(--text)}
+td.good{color:var(--green-dark)} td.bad{color:var(--red)} td.warn{color:var(--amber)} td.dim{color:var(--dim)}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.pill.yes{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
+.pill.no{background:var(--green-light);color:var(--green-dark);border:1px solid var(--green)}
+.rate-hi{color:var(--green-dark)} .rate-mid{color:var(--amber)} .rate-lo{color:var(--red)}
+
+/* KPI cards */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;border-top:3px solid var(--violet);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);font-weight:600}
+.kpi .v{font-family:var(--mono);font-size:20px;font-weight:700;margin-top:4px}
+.kpi .s{font-size:11.5px;color:var(--dim);margin-top:2px;font-family:var(--mono)}
+
+/* charts */
+.chartrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-height:280px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.chartbox h3{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.chartbox.wide{grid-column:1/-1}
+@media(max-width:900px){.chartrow{grid-template-columns:1fr}}
+
+/* Data tab */
+.dropzone{border:2px dashed var(--line2);border-radius:12px;padding:38px 20px;text-align:center;cursor:pointer;background:var(--surface);transition:all .2s}
+.dropzone:hover,.dropzone.drag{border-color:var(--green);background:var(--green-light)}
+.dropzone .big{font-size:15px;font-weight:700}
+.dropzone .small{color:var(--dim);font-size:12.5px;margin-top:6px;line-height:1.6}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:16px 0}
+
+/* overlay */
+#overlay{position:fixed;inset:0;background:rgba(26,26,46,.6);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+#overlay.on{display:flex}
+.ov-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px 32px;width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.ov-card .t{font-weight:700;font-size:16px;margin-bottom:6px}
+.ov-card .s{color:var(--dim);font-size:12.5px;margin-bottom:14px;font-family:var(--mono)}
+.bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),#00F159);transition:width .2s}
+
+.empty{padding:70px 20px;text-align:center;color:var(--dim)}
+.empty .t{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px}
+
+/* returns */
+.ret-input{width:100%;min-height:100px;background:var(--surface);color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:10px;font-family:var(--mono);font-size:13px;resize:vertical}
+.ret-input:focus{border-color:var(--violet);outline:none;box-shadow:0 0 0 3px var(--violet-bg)}
+.ret-list{max-height:400px;overflow-y:auto}
+.ret-item{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px}
+.ret-item:hover{background:var(--violet-bg)}
+.ret-item .x{cursor:pointer;color:var(--red);font-weight:700;padding:2px 8px;border-radius:4px}
+.ret-item .x:hover{background:var(--red-light)}
+
+/* chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.chip{background:var(--surface);border:1px solid var(--line2);color:var(--dim);border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.chip:hover{border-color:var(--violet);color:var(--text)}
+.chip.on{background:var(--violet);border-color:var(--violet);color:#fff}
+td.delta-up{color:var(--green-dark)} td.delta-dn{color:var(--red)}
+
+/* 3PL performance sections */
+.tpl-section{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0;margin:12px 0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.tpl-section h3{font-size:15px;font-weight:700;margin:0;padding:12px 20px;display:flex;align-items:center;gap:10px;color:#fff;background:linear-gradient(135deg,var(--violet) 0%,#A855F7 100%)}
+.tpl-section h3 .badge{font-size:11px;font-weight:700;padding:3px 12px;border-radius:12px;font-family:var(--mono);background:rgba(255,255,255,.2);color:#fff}
+.badge-a{background:rgba(0,199,72,.25)!important} .badge-b{background:rgba(59,130,246,.25)!important}
+.badge-c{background:rgba(255,169,0,.25)!important} .badge-d{background:rgba(255,54,84,.25)!important}
+.badge-f{background:rgba(255,54,84,.35)!important}
+.tpl-section .sub{font-size:12px;color:var(--dim);margin-bottom:12px;font-family:var(--mono);padding:0 20px}
+.tpl-section .tpl-kpis,.tpl-section .term-sched,.tpl-section details{padding:0 20px}
+.tpl-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:12px;padding-top:14px}
+.tpl-kpi{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tpl-kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);font-weight:600}
+.tpl-kpi .v{font-family:var(--mono);font-size:16px;font-weight:700;margin-top:3px}
+.tpl-kpi .s{font-size:11px;color:var(--dim);margin-top:2px;font-family:var(--mono)}
+.term-sched{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+.term-day{background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:11.5px;font-family:var(--mono)}
+.term-day b{color:var(--green-dark);font-weight:600}
+.term-day span{color:var(--dim)}
+
+footer{padding:14px 24px;color:var(--faint);font-size:11.5px;border-top:1px solid var(--line);font-family:var(--mono);background:var(--surface)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-top">
+    <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 255.6 208.3" class="logo-icon"><path fill="#00f159" d="M199.2,138.4c-6-16.1-17.5-27.8-33.1-33.6l-2.2-.8,5.1-3.8c18.6-13.7,35-31.5,47.5-51.4l3.2-5,.7,1.9c6,16.1,17.5,27.8,33.1,33.6l2.2.8-5.1,3.8c-18.6,13.7-35,31.5-47.5,51.4l-3.2,5-.7-1.9Z"/><path fill="#7E00E1" d="M127.5,110.1l74.9,90-47.2,7.9c-12.2,2-24.7-3.1-32.3-13.2l-53.8-63.2-5.3,29c-2.2,13.6-12.8,24.2-26.5,26.4L0,192.9,22.9,50.5c2.2-13.9,13.1-24.5,27-26.5l37.7-5.5-11.3,71.3L121.1,23.8c4.9-7.8,13-13.1,22.2-14.5L200,0l-72.5,110.1Z"/></svg><div><span class="k">KENZZ</span> <span class="sub" style="color:var(--green);font-family:var(--mono);font-weight:600">v2.0</span><div class="sub">COD Cash Cycle · Collections · 3PL · Payments</div></div></div>
+    <div class="snapshot" id="snapshotLbl">No data loaded</div>
+  </div>
+  <div class="cycle-strip" id="cycleStrip"></div>
+</header>
+
+<div class="controls">
+  <div class="ctl"><label>Period</label><select id="selMonth"></select></div>
+  <div class="ctl"><label>3PL Partner</label><select id="sel3pl"></select></div>
+  <div class="ctl"><label>Channel</label><select id="selChannel"><option value="">All channels</option><option>MP</option><option>Retail</option></select></div>
+  <div class="ctl"><label>Payment basis</label>
+    <div class="seg" id="segBasis">
+      <button data-b="1" class="on">PMT 1</button>
+      <button data-b="2">PMT 2 (+7d)</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnRefresh" title="Reload stored data and recalculate everything">⟳ Refresh data</button>
+  <button class="btn" id="btnExport" title="Export the tables of the current tab to Excel">⬇ Export tab</button>
+  <button class="btn" id="btnExportDB" title="Export all stored data as a file" style="border-color:var(--violet);color:var(--violet)">📤 Export data</button>
+  <button class="btn" id="btnImportDB" title="Import a previously exported data file">📥 Import data</button>
+  <input type="file" id="dbFileInput" accept=".json" style="display:none">
+</div>
+
+<nav class="tabs" id="tabs">
+  <button data-t="exec" class="on">Executive Summary</button>
+  <button data-t="tpl">3PL Summary</button>
+  <button data-t="weekly">Weekly Trend</button>
+  <button data-t="monthly">Monthly Analysis</button>
+  <button data-t="risk">Risk Breakdown</button>
+  <button data-t="seller">Per Seller</button>
+  <button data-t="deep">3PL Deep Dive</button>
+  <button data-t="transfers">Transfers</button>
+  <button data-t="returns">Returns</button>
+  <button data-t="data">Data</button>
+</nav>
+
+<main>
+  <div class="tabpane on" id="pane-exec"></div>
+  <div class="tabpane" id="pane-tpl"></div>
+  <div class="tabpane" id="pane-weekly"></div>
+  <div class="tabpane" id="pane-monthly"></div>
+  <div class="tabpane" id="pane-risk"></div>
+  <div class="tabpane" id="pane-seller"></div>
+  <div class="tabpane" id="pane-deep"></div>
+  <div class="tabpane" id="pane-transfers"></div>
+  <div class="tabpane" id="pane-returns"></div>
+  <div class="tabpane" id="pane-data"></div>
+</main>
+
+<footer>Kenzz COD Cash Cycle · local app · data stored in this browser (IndexedDB) · v2.0 · Kenzz COD Cash Cycle · analysis logic replicated from Kenzz_COD_Cash_Cycle_Formulas reference workbook · monthly analysis is delivered-month based</footer>
+
+<div id="overlay"><div class="ov-card">
+  <div class="t" id="ovTitle">Importing…</div>
+  <div class="s" id="ovStatus">Reading file</div>
+  <div class="bar"><i id="ovBar"></i></div>
+</div></div>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none" multiple>
+
+
+<script>
+/* =====================================================================
+   Kenzz COD Cash Cycle — local analysis app
+   Modules: DB (IndexedDB) · Parser (SheetJS worker) · Engine · Render
+   Analysis logic replicated 1:1 from the reference workbook
+   ===================================================================== */
+
+/* ---------------- utilities ---------------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const MS_DAY=86400000;
+const dayToDate=d=>new Date(d*MS_DAY);
+const fmtDate=d=>d==null?"":dayToDate(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+const fmtDateShort=d=>dayToDate(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+const dow=d=>((d%7)+7+4)%7;                 // 0=Sunday (epoch day 0 = Thursday)
+const weekStartOf=d=>d-dow(d);
+function weekNumOf(d){                       // Excel WEEKNUM(date,1): week 1 contains Jan 1, weeks start Sunday
+  const y=dayToDate(d).getUTCFullYear();
+  const jan1=Math.round(Date.UTC(y,0,1)/MS_DAY);
+  return Math.floor((d-jan1+dow(jan1))/7)+1;
+}
+const monthKey=d=>{const dt=dayToDate(d);return dt.getUTCFullYear()*100+dt.getUTCMonth()+1;};
+const monthEndDay=mk=>{const y=Math.floor(mk/100),m=mk%100;return Math.round(Date.UTC(y,m,0)/MS_DAY);};
+const monthStartDay=mk=>{const y=Math.floor(mk/100),m=mk%100;return Math.round(Date.UTC(y,m-1,1)/MS_DAY);};
+const monthLabel=mk=>new Date(Date.UTC(Math.floor(mk/100),mk%100-1,1)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+
+const nf2=new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nf0=new Intl.NumberFormat('en-US');
+const fmtEGP=v=>v==null||isNaN(v)?"—":nf2.format(v);
+const fmtInt=v=>v==null||isNaN(v)?"—":nf0.format(v);
+const fmtPct=v=>(v==null||isNaN(v))?"—":(v*100).toFixed(1)+"%";
+const fmtDays=v=>(v==null||isNaN(v))?"N/A":(Math.round(v*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const rateCls=r=>r==null?"":r>=.9?"rate-hi":r>=.7?"rate-mid":"rate-lo";
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* ---------------- DB module ---------------- */
+const DB=(()=>{
+  async function open(){}
+  async function upsertOrders(r,p){if(p)p(1);}
+  async function getAll(s){
+    if(s==="orders"){const r=await fetch("/api/orders");return r.json();}
+    if(s==="imports"){const r=await fetch("/api/imports");return r.json();}
+    if(s==="returns"){const r=await fetch("/api/returns");return(await r.json()).map(tn=>({tn}));}
+    return [];
+  }
+  async function addImport(){}
+  async function clearAll(){await fetch("/api/clear",{method:"POST"});}
+  async function getSetting(k){const r=await fetch("/api/settings/"+k);const d=await r.json();return d.value;}
+  async function putSetting(k,v){await fetch("/api/settings/"+k,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:v})});}
+  async function addReturns(tns){await fetch("/api/returns",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tns})});}
+  async function removeReturn(tn){await fetch("/api/returns/"+encodeURIComponent(tn),{method:"DELETE"});}
+  async function clearReturns(){await fetch("/api/returns",{method:"DELETE"});}
+  return {open,upsertOrders,getAll,addImport,clearAll,getSetting,putSetting,addReturns,removeReturn,clearReturns};
+})();
+
+/* ---------------- Parser (shared by worker + fallback) ----------------
+   Reads the "Details" sheet (or reference-style "Raw Data") plus the
+   optional "Sellers" sheet, and returns normalized order records.       */
+function parseWorkbook(wb,XL){
+  const norm=v=>String(v==null?"":v).toLowerCase().replace(/\s+/g," ").trim();
+  const serialToDay=v=>{
+    if(typeof v==="number"&&isFinite(v)&&v>20000&&v<80000) return Math.round(v)-25569;
+    return null;
+  };
+  function findSheet(names){
+    const keys=Object.keys(wb.Sheets);
+    for(const want of names){const k=keys.find(x=>norm(x)===want); if(k) return k;}
+    for(const want of names){const k=keys.find(x=>norm(x).includes(want)); if(k) return k;}
+    return null;
+  }
+  const detName=findSheet(["details","raw data"]);
+  if(!detName) throw new Error("No 'Details' (or 'Raw Data') sheet found in this file.");
+  const rows=XL.utils.sheet_to_json(wb.Sheets[detName],{header:1,raw:true,defval:null});
+
+  // header row = first of the top 8 rows containing a tracking-number header
+  let hIdx=-1;
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    if((rows[i]||[]).some(c=>["tracking_number","tracking number"].includes(norm(c)))){hIdx=i;break;}
+  }
+  if(hIdx<0) throw new Error(`Could not find the header row in sheet "${detName}".`);
+  const hdr=(rows[hIdx]||[]).map(norm);
+  const col=(...names)=>{for(const n of names){const i=hdr.indexOf(n);if(i>=0)return i;}return -1;};
+  const C={
+    tpl:col("third_party_logistics_partner","3pl partner"),
+    tn:col("tracking_number","tracking number"),
+    mp:col("mp stock","mp stock (egp)"),
+    retail:col("retail","retail (egp)"),
+    grand:col("grand total"),
+    coll:col("collection (egp)","collection"),
+    varc:col("variance"),
+    comment:col("comment"),
+    cd:col("collection date"),
+    dd:col("delivery date"),
+    pd:col("payment date"),
+    seller:col("seller","source_vendor")
+  };
+  if(C.grand<0&&C.retail>=0) C.grand=C.retail+1;   // reference file has a "0" header on Grand Total
+  const missing=["tpl","tn","grand","coll","comment","cd","dd","pd"].filter(k=>C[k]<0);
+  if(missing.length) throw new Error(`Sheet "${detName}" is missing columns: ${missing.join(", ")}`);
+
+  // optional Sellers sheet → tracking → vendor
+  const sellerMap={};
+  const selName=findSheet(["sellers"]);
+  if(selName){
+    const srows=XL.utils.sheet_to_json(wb.Sheets[selName],{header:1,raw:true,defval:null});
+    let sh=-1;
+    for(let i=0;i<Math.min(8,srows.length);i++){
+      if((srows[i]||[]).some(c=>norm(c)==="source_vendor")){sh=i;break;}
+    }
+    if(sh>=0){
+      const shdr=(srows[sh]||[]).map(norm);
+      const sv=shdr.indexOf("source_vendor"), st=shdr.findIndex(x=>x==="tracking_number"||x==="tracking number");
+      if(sv>=0&&st>=0){
+        for(let i=sh+1;i<srows.length;i++){
+          const r=srows[i]; if(!r) continue;
+          const t=r[st], v=r[sv];
+          if(t!=null&&v!=null&&norm(v)!=="grand total") sellerMap[String(t)]=String(v).trim();
+        }
+      }
+    }
+  }
+
+  const num=v=>(typeof v==="number"&&isFinite(v))?v:null;
+  const records=[]; let skipped=0, noSeller=0;
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const tplRaw=r[C.tpl], tnRaw=r[C.tn];
+    if(tplRaw==null||tnRaw==null){skipped++;continue;}
+    const tpl=String(tplRaw).trim();
+    if(!tpl||norm(tpl)==="grand total"){skipped++;continue;}
+    const tn=String(tnRaw).trim();
+    let comment=String(r[C.comment]==null?"":r[C.comment]).trim();
+    const cn=norm(comment);
+    comment=cn==="collected"?"Collected":cn==="not collected"?"Not Collected":cn==="return"?"Return":comment;
+    let seller=sellerMap[tn]||(C.seller>=0&&r[C.seller]!=null?String(r[C.seller]).trim():"");
+    if(!seller||seller==="0"){seller="Unknown";noSeller++;}
+    records.push({
+      tn, tpl, seller,
+      mp:num(r[C.mp]), retail:num(r[C.retail]),
+      grand:num(r[C.grand]), coll:num(r[C.coll]),
+      varc:C.varc>=0?num(r[C.varc]):null,
+      comment,
+      cd:serialToDay(r[C.cd]), dd:serialToDay(r[C.dd]), pd:serialToDay(r[C.pd])
+    });
+  }
+  return {records,info:{sheet:detName,sellerSheet:selName||"(none)",skipped,noSeller}};
+}
+
+/* ---------------- Import via Web Worker (no UI freeze) ---------------- */
+function buildWorker(){
+  const src=`
+    importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const parseWorkbook=${parseWorkbook.toString()};
+    onmessage=e=>{
+      try{
+        postMessage({stage:'Parsing workbook…'});
+        let wb;
+        try{ wb=XLSX.read(e.data.buf,{type:'array',dense:true,sheets:['Details','Sellers','Raw Data'],cellDates:false}); }
+        catch(_){ wb=XLSX.read(e.data.buf,{type:'array',dense:true,cellDates:false}); }
+        if(!Object.keys(wb.Sheets).length) wb=XLSX.read(e.data.buf,{type:'array',dense:true,cellDates:false});
+        postMessage({stage:'Extracting rows…'});
+        const out=parseWorkbook(wb,XLSX);
+        postMessage({done:true,records:out.records,info:out.info});
+      }catch(err){ postMessage({error:err.message||String(err)}); }
+    };`;
+  return new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+}
+
+async function importFiles(files){
+  const formData=new FormData();
+  for(const f of [...files]) formData.append("files",f);
+  showOverlay("Uploading","Sending to server…",10);
+  try{
+    const r=await fetch("/api/upload",{method:"POST",body:formData});
+    if(!r.ok)throw new Error((await r.json()).error||"Upload failed");
+    const res=await r.json();
+    setOverlay("Recalculating…",90);await loadData();hideOverlay();
+  }catch(err){hideOverlay();alert("Import failed: "+err.message);}
+}
+async function _old_importFiles(files){
+  for(const f of files) await importOneFile(f);
+}
+function importOneFile(file){
+  return new Promise(resolve=>{
+    showOverlay("Importing "+file.name,"Reading file…",5);
+    const fr=new FileReader();
+    fr.onload=async()=>{
+      const buf=fr.result;
+      const finish=async(records,info)=>{
+        setOverlay("Saving to database…",60);
+        await DB.upsertOrders(records,p=>setOverlay(`Saving to database… ${fmtInt(Math.round(p*records.length))} / ${fmtInt(records.length)}`,60+p*38));
+        const months=[...new Set(records.filter(r=>r.dd!=null).map(r=>monthKey(r.dd)))].sort();
+        await DB.addImport({name:file.name,at:Date.now(),rows:records.length,
+          months:months.map(monthLabel).join(", "),info});
+        setOverlay("Recalculating…",99);
+        await loadData();
+        hideOverlay();
+        resolve();
+      };
+      const fail=msg=>{hideOverlay();alert("Import failed — "+msg);resolve();};
+      let worker=null;
+      try{worker=buildWorker();}catch(_){}
+      if(worker){
+        const t=setTimeout(()=>{},0);
+        worker.onmessage=e=>{
+          if(e.data.stage) setOverlay(e.data.stage,30);
+          else if(e.data.error){worker.terminate();fallback();}
+          else if(e.data.done){worker.terminate();finish(e.data.records,e.data.info);}
+        };
+        worker.onerror=()=>{worker.terminate();fallback();};
+        try{ worker.postMessage({buf},[buf]); }catch(_){ worker.terminate(); fallback(); }
+      } else fallback();
+      function fallback(){ // main-thread parse (still shows overlay)
+        setOverlay("Parsing workbook…",30);
+        setTimeout(()=>{
+          try{
+            const wb=XLSX.read(fr.result||buf,{type:'array',dense:true,cellDates:false});
+            const out=parseWorkbook(wb,XLSX);
+            finish(out.records,out.info);
+          }catch(err){ fail(err.message||String(err)); }
+        },30);
+      }
+    };
+    fr.onerror=()=>{hideOverlay();alert("Could not read the file.");resolve();};
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+function showOverlay(t,s,p){$("#ovTitle").textContent=t;setOverlay(s,p);$("#overlay").classList.add("on")}
+function setOverlay(s,p){$("#ovStatus").textContent=s;$("#ovBar").style.width=(p||0)+"%"}
+function hideOverlay(){$("#overlay").classList.remove("on")}
+</script>
+
+
+<script>
+/* ================= Engine =================
+   Row derivation replicated 1:1 from the reference workbook:
+   - Days Del→Coll  : Collection−Delivery; for Not Collected orders with
+                      Grand Total>0 it is snapshot(end of period)−Delivery
+   - Days Coll→Pay  : Payment−Collection            (PMT2: Payment+7)
+   - Total Cycle    : Collection−Payment            (PMT2: Collection−Payment−7)
+   - Flag paid-before-collected: YES when Coll→Pay<0 (Return rows excluded)
+   - Late flag      : days Del→Coll>7 (collected & not-collected)
+   - Channel        : MP if MP Stock ≥ Retail (or only MP present)        */
+
+const State={
+  orders:[], imports:[], months:[], tpls:[],
+  scope:"all", tpl:"", channel:"", basis:1, tab:"exec",
+  sellerSearch:"", sellerSort:{key:"net",dir:-1}, compareMonths:[], deepTpl:"", terms:{}, returnSet:new Set(),
+  charts:{}, exportTables:[]
+};
+
+function deriveAll(){
+  const o=State.orders;
+  if(!o.length){State.view={rows:[],snap:null};return;}
+  let rows, snap, scopeStart=null, scopeEnd=null;
+  if(State.scope==="all"){
+    rows=o;
+    const maxDD=Math.max(...o.filter(r=>r.dd!=null).map(r=>r.dd));
+    snap=monthEndDay(monthKey(maxDD));
+  }else{
+    const mk=+State.scope;
+    scopeStart=monthStartDay(mk); scopeEnd=monthEndDay(mk);
+    rows=o.filter(r=>r.dd!=null&&r.dd>=scopeStart&&r.dd<=scopeEnd);
+    snap=scopeEnd;
+  }
+  // Cohort logic: when a specific month is selected, override collection status.
+  // "Collected" only if collection date falls within the selected month.
+  // Orders collected in a later month → treated as "Not Collected" for this period.
+  let derived;
+  if(scopeEnd!=null){
+    derived=deriveRowsCohort(rows,snap,scopeStart,scopeEnd);
+  }else{
+    derived=deriveRows(rows,snap);
+  }
+  State.view={rows:applyGlobalFilters(derived),snap};
+  State.scopeAll={rows:derived,snap};
+}
+
+function deriveRowsCohort(rows,snap,ms,me){
+  const out=new Array(rows.length);
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    // Cohort override: is this order collected WITHIN the selected month?
+    const collectedInPeriod=r.comment==="Collected"&&r.cd!=null&&r.cd<=me;
+    const isReturn=r.comment==="Return";
+    // Effective comment for this period
+    const effComment=isReturn?"Return":collectedInPeriod?"Collected":"Not Collected";
+    // store origComment for performance tracking
+    const origComment=r.comment;
+
+    const pd2=r.pd!=null?r.pd+7:null;
+    let d2c=null;
+    if(effComment==="Not Collected"){ if((r.grand||0)>0&&r.dd!=null) d2c=snap-r.dd; }
+    else if(effComment==="Collected"&&r.cd!=null&&r.dd!=null) d2c=r.cd-r.dd;
+    const c2p =(effComment==="Collected"&&r.cd!=null&&r.pd!=null)?r.pd -r.cd:null;
+    const cyc =(effComment==="Collected"&&r.cd!=null&&r.pd!=null)?r.cd -r.pd:null;
+    const c2p2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?pd2 -r.cd:null;
+    const cyc2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?r.cd -pd2:null;
+    const ch=(r.mp==null&&r.retail==null)?"":(r.mp!=null&&r.retail!=null)?((r.mp>=r.retail)?"MP":"Retail"):(r.mp!=null?"MP":"Retail");
+    out[i]={...r,pd2,d2c,c2p,cyc,c2p2,cyc2,ch,
+      comment:effComment,   // override comment for all downstream analysis
+      origComment:r.comment, // keep original for reference
+      origComment,
+      f1:isReturn?null:(c2p!=null&&c2p<0?"YES":"NO"),
+      f2:isReturn?null:(c2p2!=null&&c2p2<0?"YES":"NO"),
+      late:isReturn?null:(d2c!=null&&d2c>7?"YES":"NO")};
+  }
+  return out;
+}
+function applyGlobalFilters(rows){
+  let f=rows;
+  if(State.tpl) f=f.filter(r=>r.tpl===State.tpl);
+  if(State.channel) f=f.filter(r=>r.ch===State.channel);
+  return f;
+}
+function deriveRows(rows,snap){
+  const out=new Array(rows.length);
+  const retSet=State.returnSet;
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    // Apply manual returns
+    const effComment=retSet.has(r.tn)?"Return":r.comment;
+    const pd2=r.pd!=null?r.pd+7:null;
+    let d2c=null;
+    if(effComment==="Not Collected"){ if((r.grand||0)>0&&r.dd!=null) d2c=snap-r.dd; }
+    else if(effComment==="Collected"&&r.cd!=null&&r.dd!=null) d2c=r.cd-r.dd;
+    const c2p =(effComment==="Collected"&&r.cd!=null&&r.pd!=null)?r.pd -r.cd:null;
+    const cyc =(effComment==="Collected"&&r.cd!=null&&r.pd!=null)?r.cd -r.pd:null;
+    const c2p2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?pd2 -r.cd:null;
+    const cyc2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?r.cd -pd2:null;
+    const isRet=effComment==="Return";
+    const ch=(r.mp==null&&r.retail==null)?"":(r.mp!=null&&r.retail!=null)?((r.mp>=r.retail)?"MP":"Retail"):(r.mp!=null?"MP":"Retail");
+    out[i]={...r,comment:effComment,origComment:r.comment,pd2,d2c,c2p,cyc,c2p2,cyc2,ch,
+      f1:isRet?null:(c2p!=null&&c2p<0?"YES":"NO"),
+      f2:isRet?null:(c2p2!=null&&c2p2<0?"YES":"NO"),
+      late:isRet?null:(d2c!=null&&d2c>7?"YES":"NO")};
+  }
+  return out;
+}
+
+const F=(r,b)=>b===2?r.f2:r.f1;             // flag by basis
+const CYC=(r,b)=>b===2?r.cyc2:r.cyc;
+const C2P=(r,b)=>b===2?r.c2p2:r.c2p;
+
+function kpis(rows,b){
+  const col=rows.filter(r=>r.comment==="Collected");
+  const nc =rows.filter(r=>r.comment==="Not Collected");
+  const ret=rows.filter(r=>r.comment==="Return");
+  const g=a=>sum(a.map(r=>r.grand||0));
+  const yes=rows.filter(r=>F(r,b)==="YES");
+  const late=rows.filter(r=>r.late==="YES");
+  return {
+    n:rows.length, nCol:col.length, nNC:nc.length, nRet:ret.length,
+    net:g(rows), colAmt:g(col), ncAmt:g(nc), retAmt:g(ret),
+    collEGP:sum(col.map(r=>r.coll||0)),
+    rate:rows.length?col.length/rows.length:null,
+    yesN:yes.length, yesAmt:g(yes),
+    lateN:late.length, lateAmt:g(late),
+    avgCyc:mean(rows.map(r=>CYC(r,b)).filter(v=>v!=null)),
+    avgD2C:mean(rows.map(r=>r.d2c).filter(v=>v!=null)),
+    avgC2P:mean(rows.map(r=>C2P(r,b)).filter(v=>v!=null)),
+    mpTot:sum(rows.filter(r=>(r.mp||0)>0).map(r=>r.mp)),
+    rtTot:sum(rows.filter(r=>(r.retail||0)>0).map(r=>r.retail))
+  };
+}
+
+/* ================= Renderers ================= */
+function T(headers,body,opts={}){
+  const th=headers.map(h=>`<th${h.cls?` class="${h.cls}"`:""}${h.attr||""}>${h.t??h}</th>`).join("");
+  return `<div class="twrap"><table${opts.id?` id="${opts.id}"`:""}><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+const reg=(name,aoa)=>State.exportTables.push({name,aoa});
+
+function renderAll(){
+  State.exportTables=[];
+  deriveAll();
+  renderHeader();
+  if(!State.orders.length&&State.tab!=="data"){
+    $("#pane-"+State.tab).innerHTML=`<div class="empty"><div class="t">No data yet</div>
+      Import your COD analysis Excel file to get started.<br><br>
+      <button class="btn primary" onclick="$('#fileInput').click()">⬆ Import Excel file</button></div>`;
+    if(State.tab==="data") renderData();
+    return;
+  }
+  ({exec:renderExec,tpl:render3PL,weekly:renderWeekly,monthly:renderMonthly,risk:renderRisk,seller:renderSeller,deep:renderDeep,transfers:renderTransfers,returns:renderReturns,data:renderData})[State.tab]();
+}
+
+function renderHeader(){
+  const v=State.view;
+  const scopeTxt=State.scope==="all"?"All data":monthLabel(+State.scope);
+  const isCohort=State.scope!=="all";
+  if(!v||!v.rows.length){
+    $("#snapshotLbl").innerHTML=State.orders.length?`<b>${scopeTxt}</b> · no rows match the current filters`:"No data loaded";
+    $("#cycleStrip").innerHTML="";
+    return;
+  }
+  const b=State.basis, k=kpis(v.rows,b);
+  $("#snapshotLbl").innerHTML=`<b>${scopeTxt}</b> · ${fmtInt(k.n)} orders${isCohort?" · <span style=\"color:var(--amber)\">cohort mode: collected = within this month only</span>":""}`;
+  const avgD2Ccol=mean(v.rows.filter(r=>r.comment==="Collected").map(r=>r.d2c).filter(x=>x!=null));
+  $("#cycleStrip").innerHTML=`
+    <div class="cyc-node"><div class="lbl">Delivered</div><div class="val">${fmtInt(k.n)}<small>orders</small></div></div>
+    <div class="cyc-arrow"><div class="days">${fmtDays(avgD2Ccol)} d</div><div class="line"></div><div class="tag">avg to collect</div></div>
+    <div class="cyc-node"><div class="lbl">Collected</div><div class="val">${fmtInt(k.nCol)}<small>${fmtPct(k.rate)}</small></div></div>
+    <div class="cyc-arrow"><div class="days">${fmtDays(k.avgC2P)} d</div><div class="line"></div><div class="tag">avg to pay (PMT ${b})</div></div>
+    <div class="cyc-node"><div class="lbl">Seller paid</div><div class="val">${fmtEGP(k.collEGP)}<small>EGP collected</small></div></div>
+    <div class="cyc-node" style="margin-left:14px;border-color:${k.avgCyc<0?"var(--red)":"var(--line)"}">
+      <div class="lbl">Total cash cycle (Coll−Pay)</div>
+      <div class="val" style="color:${k.avgCyc<0?"var(--red)":"var(--green)"}">${fmtDays(k.avgCyc)}<small>days avg</small></div></div>`;
+}
+
+/* ---------- Executive Summary ---------- */
+function renderExec(){
+  const rows=State.view.rows;
+  const k1=kpis(rows,1), k2=kpis(rows,2);
+  const kpiCards=`
+  <div class="kpis">
+    <div class="kpi"><div class="l">Total net sales</div><div class="v">${fmtEGP(k1.net)}</div><div class="s">${fmtInt(k1.n)} shipments</div></div>
+    <div class="kpi"><div class="l">Collected</div><div class="v" style="color:var(--green)">${fmtEGP(k1.colAmt)}</div><div class="s">${fmtPct(k1.net?k1.colAmt/k1.net:null)} of net</div></div>
+    <div class="kpi"><div class="l">Not collected</div><div class="v" style="color:var(--red)">${fmtEGP(k1.ncAmt)}</div><div class="s">${fmtPct(k1.net?k1.ncAmt/k1.net:null)} of net</div></div>
+    <div class="kpi"><div class="l">Collection rate</div><div class="v ${rateCls(k1.rate)}">${fmtPct(k1.rate)}</div><div class="s">${fmtInt(k1.nCol)} / ${fmtInt(k1.n)} orders</div></div>
+    <div class="kpi"><div class="l">Paid before collected (PMT ${State.basis})</div><div class="v" style="color:var(--amber)">${fmtInt(State.basis===2?k2.yesN:k1.yesN)}</div><div class="s">${fmtEGP(State.basis===2?k2.yesAmt:k1.yesAmt)} EGP</div></div>
+    <div class="kpi"><div class="l">Returns</div><div class="v">${fmtInt(k1.nRet)}</div><div class="s">${fmtEGP(k1.retAmt)} EGP</div></div>
+  </div>`;
+  const R=(label,v1,s1,v2,s2,note,added)=>`<tr${added?` style="color:var(--amber)"`:""}>
+    <td>${label}${added?' <span class="added-note">· added (not in reference)</span>':""}</td>
+    <td>${v1}</td><td class="dim">${s1||""}</td><td>${v2}</td><td class="dim">${s2||""}</td><td class="dim" style="font-family:var(--sans);font-size:11.5px">${note||""}</td></tr>`;
+  const pctNet=x=>fmtPct(k1.net?x/k1.net:null);
+  const pctN=x=>fmtPct(k1.n?x/k1.n:null);
+  const body=
+    R("Total Net Sales (EGP)",fmtEGP(k1.net),"",fmtEGP(k2.net),"","Sum of Grand Total — all shipments")+
+    R("Total Collected (EGP)",fmtEGP(k1.colAmt),pctNet(k1.colAmt),fmtEGP(k2.colAmt),pctNet(k2.colAmt),"Grand Total of collected orders")+
+    R("Total Not Collected (EGP)",fmtEGP(k1.ncAmt),pctNet(k1.ncAmt),fmtEGP(k2.ncAmt),pctNet(k2.ncAmt),"Grand Total of not-collected orders")+
+    R("Total Return (EGP)",fmtEGP(k1.retAmt),pctNet(k1.retAmt),fmtEGP(k2.retAmt),pctNet(k2.retAmt),"Return orders — own category",true)+
+    R("Overall Collection Rate %",fmtPct(k1.rate),"",fmtPct(k2.rate),"","Collected orders ÷ all shipments")+
+    R("Total Shipment",fmtInt(k1.n),"",fmtInt(k2.n),"","All orders in scope (incl. returns)")+
+    R("Collected Orders",fmtInt(k1.nCol),pctN(k1.nCol),fmtInt(k2.nCol),pctN(k2.nCol),"")+
+    R("Not Collected Orders",fmtInt(k1.nNC),pctN(k1.nNC),fmtInt(k2.nNC),pctN(k2.nNC),"")+
+    R("Return Orders",fmtInt(k1.nRet),pctN(k1.nRet),fmtInt(k2.nRet),pctN(k2.nRet),"",true)+
+    R("Orders Paid Before Collected",fmtInt(k1.yesN),"",fmtInt(k2.yesN),"","Coll→Pay days < 0")+
+    R("Amount Paid Before Collected (EGP)",fmtEGP(k1.yesAmt),pctNet(k1.yesAmt),fmtEGP(k2.yesAmt),pctNet(k2.yesAmt),"")+
+    R("Orders with Late Collection (>7d)",fmtInt(k1.lateN),"",fmtInt(k2.lateN),"","Includes not-collected days outstanding")+
+    R("Amount Late Collection (EGP)",fmtEGP(k1.lateAmt),pctNet(k1.lateAmt),fmtEGP(k2.lateAmt),pctNet(k2.lateAmt),"")+
+    R("Avg Total Cash Cycle (days)",fmtDays(k1.avgCyc),"",fmtDays(k2.avgCyc),"","Collection − Payment (as in reference)")+
+    R("Avg Days: Delivery → Collection",fmtDays(k1.avgD2C),"",fmtDays(k2.avgD2C),"","All measurable orders, incl. days outstanding")+
+    R("Avg Days: Collection → Seller Payment",fmtDays(k1.avgC2P),"",fmtDays(k2.avgC2P),"")+
+    R("MP / MFBK Total (EGP)",fmtEGP(k1.mpTot),pctNet(k1.mpTot),fmtEGP(k2.mpTot),pctNet(k2.mpTot),"")+
+    R("Retail Total (EGP)",fmtEGP(k1.rtTot),pctNet(k1.rtTot),fmtEGP(k2.rtTot),pctNet(k2.rtTot),"");
+  $("#pane-exec").innerHTML=kpiCards+
+    `<h2 class="sec">Executive Summary</h2><div class="sec-note">PMT 1 = actual payment date · PMT 2 = payment date + 7 days</div>`+
+    T(["Metric","PMT 1","%","PMT 2 (+7d)","%","Note"],body)+
+    `<div class="chartrow">
+       <div class="chartbox"><h3>Net sales split (EGP)</h3><canvas id="chDonut" height="230"></canvas></div>
+       <div class="chartbox"><h3>Cycle averages (days)</h3><canvas id="chCycle" height="230"></canvas></div>
+     </div>`;
+  reg("Executive Summary",[
+    ["Metric","PMT 1","%","PMT 2 (+7d)","%"],
+    ["Total Net Sales (EGP)",k1.net,"",k2.net,""],
+    ["Total Collected (EGP)",k1.colAmt,k1.net?k1.colAmt/k1.net:"",k2.colAmt,k2.net?k2.colAmt/k2.net:""],
+    ["Total Not Collected (EGP)",k1.ncAmt,k1.net?k1.ncAmt/k1.net:"",k2.ncAmt,""],
+    ["Total Return (EGP) *added",k1.retAmt,"",k2.retAmt,""],
+    ["Overall Collection Rate %",k1.rate,"",k2.rate,""],
+    ["Total Shipment",k1.n,"",k2.n,""],
+    ["Collected Orders",k1.nCol,"",k2.nCol,""],
+    ["Not Collected Orders",k1.nNC,"",k2.nNC,""],
+    ["Return Orders *added",k1.nRet,"",k2.nRet,""],
+    ["Orders Paid Before Collected",k1.yesN,"",k2.yesN,""],
+    ["Amount Paid Before Collected (EGP)",k1.yesAmt,"",k2.yesAmt,""],
+    ["Orders with Late Collection (>7d)",k1.lateN,"",k2.lateN,""],
+    ["Amount Late Collection (EGP)",k1.lateAmt,"",k2.lateAmt,""],
+    ["Avg Total Cash Cycle (days)",k1.avgCyc,"",k2.avgCyc,""],
+    ["Avg Days Delivery→Collection",k1.avgD2C,"",k2.avgD2C,""],
+    ["Avg Days Collection→Seller Payment",k1.avgC2P,"",k2.avgC2P,""],
+    ["MP/MFBK Total (EGP)",k1.mpTot,"",k2.mpTot,""],
+    ["Retail Total (EGP)",k1.rtTot,"",k2.rtTot,""]]);
+  drawDonut(k1); drawCycleBars(k1,k2);
+}
+
+/* ---------- 3PL Summary ---------- */
+function tplStats(rows,b){
+  const tpls=[...new Set(rows.map(r=>r.tpl))].sort();
+  const mk=set=>{
+    const col=set.filter(r=>r.comment==="Collected");
+    const nc =set.filter(r=>r.comment==="Not Collected");
+    const yes=set.filter(r=>F(r,b)==="YES"), late=set.filter(r=>r.late==="YES");
+    const net=sum(set.map(r=>r.grand||0)), colAmt=sum(col.map(r=>r.coll||0));
+    const ncD=nc.map(r=>r.d2c).filter(v=>v!=null);
+    return {n:set.length,nCol:col.length,nNC:nc.length,nRet:set.filter(r=>r.comment==="Return").length,
+      net,colAmt,unc:net-colAmt,rate:net?colAmt/net:null,
+      avgD2C:mean(col.map(r=>r.d2c).filter(v=>v!=null)),
+      avgD2NC:mean(ncD),maxNC:ncD.length?Math.max(...ncD):null,
+      avgC2P:mean(col.map(r=>C2P(r,b)).filter(v=>v!=null)),
+      avgCyc:mean(set.map(r=>CYC(r,b)).filter(v=>v!=null)),
+      yesN:yes.length,yesAmt:sum(yes.map(r=>r.grand||0)),
+      lateN:late.length,lateAmt:sum(late.map(r=>r.grand||0)),
+      ncAmt:sum(nc.map(r=>r.grand||0))};
+  };
+  return {tpls,per:Object.fromEntries(tpls.map(t=>[t,mk(rows.filter(r=>r.tpl===t))])),tot:mk(rows)};
+}
+function render3PL(){
+  const b=State.basis, S=tplStats(State.view.rows,b);
+  const row=(name,s,total)=>`<tr${total?' class="total"':""}>
+    <td>${esc(name)}</td><td>${fmtInt(s.n)}</td><td>${fmtInt(s.nCol)}</td><td>${fmtInt(s.nNC)}</td>
+    <td>${fmtEGP(s.net)}</td><td>${fmtEGP(s.colAmt)}</td><td>${fmtEGP(s.unc)}</td>
+    <td class="${rateCls(s.rate)}">${fmtPct(s.rate)}</td>
+    <td>${fmtDays(s.avgD2C)}</td><td>${fmtDays(s.avgD2NC)}</td><td>${s.maxNC==null?"—":fmtInt(s.maxNC)}</td>
+    <td>${fmtDays(s.avgC2P)}</td><td class="${s.avgCyc<0?"bad":"good"}">${fmtDays(s.avgCyc)}</td></tr>`;
+  const main=S.tpls.map(t=>row(t,S.per[t])).join("")+row("TOTAL",S.tot,true);
+  const riskRow=(name,s,total)=>`<tr${total?' class="total"':""}>
+    <td>${esc(name)}</td><td>${fmtInt(s.yesN)}</td><td>${fmtEGP(s.yesAmt)}</td>
+    <td>${fmtPct(S.tot.yesAmt?s.yesAmt/S.tot.yesAmt:null)}</td>
+    <td>${fmtInt(s.lateN)}</td><td>${fmtEGP(s.lateAmt)}</td></tr>`;
+  const risk=S.tpls.map(t=>riskRow(t,S.per[t])).join("")+riskRow("TOTAL",S.tot,true);
+  $("#pane-tpl").innerHTML=
+    `<h2 class="sec">3PL Summary — PMT ${b}</h2><div class="sec-note">Collected Amount sums the Collection (EGP) column, as in the reference</div>`+
+    T(["3PL Partner","Orders","Collected","Not Collected","Net Sales (EGP)","Collected Amount (EGP)","Uncollected (EGP)","Collection Rate %","Avg Del→Coll (d)","Avg Del→Not Coll (d)","Max Days Not Coll","Avg Coll→Pay (d)","Avg Total Cycle (d)"],main)+
+    `<h2 class="sec">Risk by 3PL — PMT ${b}</h2>`+
+    T(["3PL Partner","Orders Collected After Paid","Amount After Paid (EGP)","% of Total Risk","Orders Late (>7d)","Amount Late (EGP)"],risk)+
+    `<div class="chartrow"><div class="chartbox wide"><h3>Collected vs uncollected by 3PL · collection rate</h3><canvas id="ch3pl" height="110"></canvas></div></div>`;
+  reg("3PL Summary",[["3PL","Orders","Collected","Not Collected","Net Sales","Collected Amount","Uncollected","Rate","Avg Del→Coll","Avg Del→NotColl","Max NC days","Avg Coll→Pay","Avg Cycle"],
+    ...S.tpls.map(t=>{const s=S.per[t];return [t,s.n,s.nCol,s.nNC,s.net,s.colAmt,s.unc,s.rate,s.avgD2C,s.avgD2NC,s.maxNC,s.avgC2P,s.avgCyc];}),
+    ["TOTAL",S.tot.n,S.tot.nCol,S.tot.nNC,S.tot.net,S.tot.colAmt,S.tot.unc,S.tot.rate,S.tot.avgD2C,S.tot.avgD2NC,S.tot.maxNC,S.tot.avgC2P,S.tot.avgCyc]]);
+  reg("Risk by 3PL",[["3PL","Orders After Paid","Amount After Paid","% of Risk","Orders Late","Amount Late"],
+    ...S.tpls.map(t=>{const s=S.per[t];return [t,s.yesN,s.yesAmt,S.tot.yesAmt?s.yesAmt/S.tot.yesAmt:"",s.lateN,s.lateAmt];})]);
+  draw3PL(S);
+}
+</script>
+
+
+<script>
+/* ---------- Weekly Trend ---------- */
+function weeklyBuckets(rows){
+  const dds=rows.filter(r=>r.dd!=null).map(r=>r.dd);
+  if(!dds.length) return [];
+  let ws=weekStartOf(Math.min(...dds));
+  const last=weekStartOf(Math.max(...dds));
+  const buckets=[];
+  while(ws<=last){
+    const we=ws+6;
+    const wk=(dayToDate(ws).getUTCFullYear()!==dayToDate(we).getUTCFullYear())?weekNumOf(we):weekNumOf(ws);
+    buckets.push({ws,we,wk});ws+=7;
+  }
+  return buckets;
+}
+function weekStats(rows,b){
+  const col=rows.filter(r=>r.comment==="Collected");
+  const net=sum(rows.map(r=>r.grand||0)), collected=sum(col.map(r=>r.coll||0));
+  const befO=rows.filter(r=>F(r,b)==="NO").length, aftO=rows.filter(r=>F(r,b)==="YES").length;
+  const befE=sum(col.filter(r=>F(r,b)==="NO").map(r=>r.coll||0));
+  const aftE=sum(col.filter(r=>F(r,b)==="YES").map(r=>r.coll||0));
+  return {n:rows.length,net,collected,unc:net-collected,rate:net?collected/net:null,
+    befO,aftO,befE,aftE,
+    pB:net?befE/net:null,pA:net?aftE/net:null,pNC:net?(net-collected)/net:null,
+    rO:rows.filter(r=>r.retail!=null).length,mO:rows.filter(r=>r.mp!=null).length,
+    rS:sum(rows.map(r=>r.retail||0)),mS:sum(rows.map(r=>r.mp||0))};
+}
+function renderWeekly(){
+  const b=State.basis, rows=State.view.rows;
+  const buckets=weeklyBuckets(rows);
+  const mkTable=(set,withStock)=>{
+    const data=buckets.map(bk=>({bk,s:weekStats(set.filter(r=>r.dd>=bk.ws&&r.dd<=bk.we),b)}))
+                      .filter(x=>x.s.n>0);
+    const tot=weekStats(set,b);
+    const tr=(lbl,s,total)=>`<tr${total?' class="total"':""}>
+      <td>${lbl}</td><td>${fmtInt(s.n)}</td><td>${fmtEGP(s.net)}</td><td>${fmtEGP(s.collected)}</td><td>${fmtEGP(s.unc)}</td>
+      <td class="${rateCls(s.rate)}">${fmtPct(s.rate)}</td>
+      <td>${fmtPct(s.pB)}</td><td>${fmtPct(s.pA)}</td><td>${fmtPct(s.pNC)}</td>
+      <td>${fmtInt(s.befO)}</td><td>${fmtInt(s.aftO)}</td><td>${fmtEGP(s.befE)}</td><td>${fmtEGP(s.aftE)}</td>
+      ${withStock?`<td>${fmtInt(s.rO)}</td><td>${fmtInt(s.mO)}</td><td>${fmtEGP(s.rS)}</td><td>${fmtEGP(s.mS)}</td>`:""}</tr>`;
+    const body=data.map(x=>tr(`Wk ${x.bk.wk} <span class="dim" style="font-family:var(--mono);font-size:11px">(${fmtDateShort(x.bk.ws)} – ${fmtDateShort(x.bk.we)})</span>`,x.s)).join("")+tr("TOTAL",tot,true);
+    const heads=["Week","Orders","Net Sales (EGP)","Collected (EGP)","Uncollected (EGP)","Rate %","% Before Paid","% After Paid","% Not Coll","Before-Paid Orders","After-Paid Orders","Before-Paid EGP","After-Paid EGP"];
+    if(withStock) heads.push("Retail Orders","MP Orders","Retail Stock (EGP)","MP Stock (EGP)");
+    return {html:T(heads,body),data,tot};
+  };
+  const main=mkTable(rows,true);
+  const rt=mkTable(rows.filter(r=>r.ch==="Retail"),false);
+  const mp=mkTable(rows.filter(r=>r.ch==="MP"),false);
+  const t=main.tot;
+  const ratios=`<div class="sec-note" style="margin-top:8px;font-family:var(--mono)">
+    From collected: before-paid ${fmtPct(t.collected?t.befE/t.collected:null)} · after-paid ${fmtPct(t.collected?t.aftE/t.collected:null)}
+    &nbsp;·&nbsp; Of net sales: collected ${fmtPct(t.rate)} · before-paid ${fmtPct(t.pB)} · after-paid ${fmtPct(t.pA)}</div>`;
+  $("#pane-weekly").innerHTML=
+    `<h2 class="sec">Weekly Trend — PMT ${b}</h2><div class="sec-note">Sunday–Saturday weeks by Delivery Date · week numbers follow Excel WEEKNUM</div>`+
+    main.html+ratios+
+    `<div class="chartrow"><div class="chartbox wide"><h3>Weekly net sales vs collected · collection rate</h3><canvas id="chWeek" height="110"></canvas></div></div>`+
+    `<h2 class="sec">Retail only</h2>`+rt.html+
+    `<h2 class="sec">MP / MFBK only</h2>`+mp.html;
+  const aoa=tb=>[["Week","From","To","Orders","Net Sales","Collected","Uncollected","Rate","%Before","%After","%NotColl","BeforeOrders","AfterOrders","BeforeEGP","AfterEGP"],
+    ...tb.data.map(x=>[`Wk ${x.bk.wk}`,fmtDate(x.bk.ws),fmtDate(x.bk.we),x.s.n,x.s.net,x.s.collected,x.s.unc,x.s.rate,x.s.pB,x.s.pA,x.s.pNC,x.s.befO,x.s.aftO,x.s.befE,x.s.aftE]),
+    ["TOTAL","","",tb.tot.n,tb.tot.net,tb.tot.collected,tb.tot.unc,tb.tot.rate,tb.tot.pB,tb.tot.pA,tb.tot.pNC,tb.tot.befO,tb.tot.aftO,tb.tot.befE,tb.tot.aftE]];
+  reg("Weekly Trend",aoa(main)); reg("Weekly Retail",aoa(rt)); reg("Weekly MP",aoa(mp));
+  drawWeekly(main.data);
+}
+
+
+/* ---------- Monthly Analysis (cohort aging) ----------
+   Cohort = orders grouped by DELIVERY month.
+   "Collected in Jan" = collection date falls in January.
+   An order delivered Jan 15, collected Feb 5 is:
+     - in the January cohort
+     - NOT collected in January
+     - collected in February (M+1)
+   This measures how much of each month's deliveries was actually
+   collected during that same month vs. spilling into later months. */
+
+function cohortStats(mk){
+  const snap=monthEndDay(mk);
+  const ms=monthStartDay(mk), me=monthEndDay(mk);
+  let rows=State.orders.filter(r=>r.dd!=null&&monthKey(r.dd)===mk);
+  if(State.tpl) rows=rows.filter(r=>r.tpl===State.tpl);
+  if(State.channel){
+    rows=rows.filter(r=>{
+      const ch=(r.mp==null&&r.retail==null)?"":(r.mp!=null&&r.retail!=null)?((r.mp>=r.retail)?"MP":"Retail"):(r.mp!=null?"MP":"Retail");
+      return ch===State.channel;
+    });
+  }
+  const net=sum(rows.map(r=>r.grand||0));
+  const allCollected=rows.filter(r=>r.comment==="Collected"&&r.cd!=null);
+  // same-month collected: collection date falls within delivery month (or before — data anomaly counted here)
+  const sameMo=allCollected.filter(r=>r.cd<=me);
+  const sameAmt=sum(sameMo.map(r=>r.coll||0));
+  const sameGrand=sum(sameMo.map(r=>r.grand||0));
+  // collected in later months
+  const laterColl=allCollected.filter(r=>r.cd>me);
+  const laterAmt=sum(laterColl.map(r=>r.coll||0));
+  const laterGrand=sum(laterColl.map(r=>r.grand||0));
+  // not collected in same month = everything except sameMo
+  const notSameN=rows.length-sameMo.length;
+  const notSameAmt=net-sameGrand;
+  // truly not collected (comment = Not Collected)
+  const nc=rows.filter(r=>r.comment==="Not Collected");
+  const ncAmt=sum(nc.map(r=>r.grand||0));
+  // returns
+  const ret=rows.filter(r=>r.comment==="Return");
+  const retAmt=sum(ret.map(r=>r.grand||0));
+  // collected but no date (Flextock etc)
+  const noDate=rows.filter(r=>r.comment==="Collected"&&r.cd==null);
+  const noDateAmt=sum(noDate.map(r=>r.coll||0));
+  // still outstanding = NC amount
+  const stillOut=ncAmt;
+  // avg delay for same-month collected
+  const delays=sameMo.map(r=>r.cd-r.dd).filter(v=>v!=null);
+  const avgDelay=mean(delays);
+  // delayed >7d among same-month collected
+  const delayed7=sameMo.filter(r=>(r.cd-r.dd)>7);
+  // all-time collected (eventual) for comparison
+  const allCol=rows.filter(r=>r.comment==="Collected");
+  const allColAmt=sum(allCol.map(r=>r.coll||0));
+  // waterfall by collection month
+  const wf={};
+  for(const r of allCollected){
+    const cm=monthKey(r.cd);
+    wf[cm]=(wf[cm]||{n:0,amt:0,grand:0});
+    wf[cm].n++; wf[cm].amt+=r.coll||0; wf[cm].grand+=r.grand||0;
+  }
+  return {mk,n:rows.length,net,
+    sameN:sameMo.length,sameAmt,sameGrand,
+    notSameN,notSameAmt,
+    ncN:nc.length,ncAmt,retN:ret.length,retAmt,
+    laterN:laterColl.length,laterAmt,laterGrand,
+    noDateN:noDate.length,noDateAmt,
+    stillOut,
+    sameRate:net?sameGrand/net:null,
+    sameRateOrders:rows.length?sameMo.length/rows.length:null,
+    eventualRate:net?allColAmt/net:null,
+    avgDelay,delayed7N:delayed7.length,
+    delayed7Amt:sum(delayed7.map(r=>r.grand||0)),
+    wf,
+    allColN:allCol.length,allColAmt};
+}
+
+function renderMonthly(){
+  const months=State.months;
+  if(!months.length){$("#pane-monthly").innerHTML='<div class="empty"><div class="t">No data yet</div>Import a file first.</div>';return;}
+  const stats=months.map(m=>cohortStats(m));
+  State.compareMonths=State.compareMonths.filter(m=>months.includes(m));
+  if(!State.compareMonths.length) State.compareMonths=months.slice(-2);
+
+  /* --- cohort summary table --- */
+  const tr=(s,name,total)=>`<tr${total?' class="total"':""}>
+    <td>${name}</td><td>${fmtInt(s.n)}</td><td>${fmtEGP(s.net)}</td>
+    <td class="good">${fmtInt(s.sameN)}</td><td class="good">${fmtEGP(s.sameGrand)}</td>
+    <td class="${rateCls(s.sameRate)}">${fmtPct(s.sameRate)}</td>
+    <td>${fmtInt(s.notSameN)}</td><td class="bad">${fmtEGP(s.notSameAmt)}</td>
+    <td>${fmtInt(s.laterN)}</td><td>${fmtEGP(s.laterGrand)}</td>
+    <td>${fmtInt(s.ncN)}</td><td class="bad">${fmtEGP(s.ncAmt)}</td>
+    <td>${fmtDays(s.avgDelay)}</td><td>${fmtInt(s.delayed7N)}</td>
+    <td class="dim">${fmtPct(s.eventualRate)}</td></tr>`;
+  const agg=(arr,k)=>sum(arr.map(s=>s[k]||0));
+  const tot={n:agg(stats,"n"),net:agg(stats,"net"),sameN:agg(stats,"sameN"),sameGrand:agg(stats,"sameGrand"),
+    notSameN:agg(stats,"notSameN"),notSameAmt:agg(stats,"notSameAmt"),laterN:agg(stats,"laterN"),laterGrand:agg(stats,"laterGrand"),
+    ncN:agg(stats,"ncN"),ncAmt:agg(stats,"ncAmt"),delayed7N:agg(stats,"delayed7N"),allColAmt:agg(stats,"allColAmt")};
+  tot.sameRate=tot.net?tot.sameGrand/tot.net:null;
+  tot.eventualRate=tot.net?tot.allColAmt/tot.net:null;
+  tot.avgDelay=mean(stats.filter(s=>s.avgDelay!=null).map(s=>s.avgDelay));
+  const mainBody=stats.map(s=>tr(s,monthLabel(s.mk))).join("")+tr(tot,"TOTAL",true);
+  const mainTable=T(["Delivery Month","Delivered","Net Sales (EGP)",
+    "Collected Same Month","Same Month (EGP)","Same-Month Rate %",
+    "Not Collected in Month","Outstanding at Month End (EGP)",
+    "Collected Later","Collected Later (EGP)",
+    "Still Not Collected","Still Outstanding (EGP)",
+    "Avg Delay (d)","Delayed >7d","Eventual Rate %"],mainBody);
+
+  /* --- waterfall detail for each month --- */
+  let wfHtml="";
+  for(const s of stats){
+    const wfMonths=Object.keys(s.wf).map(Number).sort();
+    if(!wfMonths.length) continue;
+    let cumN=0,cumAmt=0;
+    const wfRows=wfMonths.map(cm=>{
+      const w=s.wf[cm]; cumN+=w.n; cumAmt+=w.grand;
+      const isSame=cm===s.mk;
+      return `<tr><td${isSame?' style="color:var(--green)"':""}>${monthLabel(cm)}${isSame?" ← same month":""}</td>
+        <td>${fmtInt(w.n)}</td><td>${fmtEGP(w.grand)}</td>
+        <td>${fmtInt(cumN)}</td><td>${fmtEGP(cumAmt)}</td>
+        <td class="${rateCls(s.net?cumAmt/s.net:null)}">${fmtPct(s.net?cumAmt/s.net:null)}</td></tr>`;}).join("");
+    if(s.ncN>0){
+      wfRows;  // ncN handled separately
+    }
+    wfHtml+=`<details style="margin:6px 0"><summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--text)">${monthLabel(s.mk)} — collection waterfall</summary>
+      <div style="margin:8px 0">${T(["Collection Month","Orders","Amount (EGP)","Cumulative Orders","Cumulative (EGP)","Cumulative Rate %"],
+        wfRows+(s.ncN?`<tr class="total"><td style="color:var(--red)">Still not collected</td><td>${fmtInt(s.ncN)}</td><td>${fmtEGP(s.ncAmt)}</td><td></td><td></td><td></td></tr>`:"")
+      )}</div></details>`;
+  }
+
+  /* --- comparison --- */
+  const chips=months.map(m=>`<button class="chip${State.compareMonths.includes(m)?" on":""}" data-m="${m}">${monthLabel(m)}</button>`).join("");
+  const sel=State.compareMonths.map(m=>cohortStats(m));
+  const two=sel.length===2;
+  const metrics=[
+    ["Delivered Orders",s=>s.n,fmtInt,1],
+    ["Net Sales (EGP)",s=>s.net,fmtEGP,1],
+    ["Collected Same Month (orders)",s=>s.sameN,fmtInt,1],
+    ["Collected Same Month (EGP)",s=>s.sameGrand,fmtEGP,1],
+    ["Same-Month Rate %",s=>s.sameRate,fmtPct,1],
+    ["Not Collected in Month",s=>s.notSameN,fmtInt,-1],
+    ["Outstanding at Month End (EGP)",s=>s.notSameAmt,fmtEGP,-1],
+    ["Collected in Later Months",s=>s.laterN,fmtInt,1],
+    ["Collected Later (EGP)",s=>s.laterGrand,fmtEGP,1],
+    ["Still Not Collected",s=>s.ncN,fmtInt,-1],
+    ["Still Outstanding (EGP)",s=>s.ncAmt,fmtEGP,-1],
+    ["Avg Collection Delay (d)",s=>s.avgDelay,fmtDays,-1],
+    ["Delayed >7d (orders)",s=>s.delayed7N,fmtInt,-1],
+    ["Eventual Collection Rate %",s=>s.eventualRate,fmtPct,1]];
+  let cmpTable="";
+  if(sel.length){
+    const heads=["Metric",...sel.map(s=>monthLabel(s.mk))];
+    if(two) heads.push("Δ change","Δ %");
+    const body=metrics.map(([name,get,fmt,goodDir])=>{
+      let cells=sel.map(s=>`<td>${fmt(get(s))}</td>`).join("");
+      if(two){
+        const a=get(sel[0]),b=get(sel[1]);
+        if(a!=null&&b!=null&&!isNaN(a)&&!isNaN(b)){
+          const d=b-a, good=d*goodDir>0, cls=d===0?"":good?"delta-up":"delta-dn", sign=d>0?"+":"";
+          cells+=`<td class="${cls}">${sign}${fmt===fmtPct?(d*100).toFixed(1)+" pp":fmt(d)}</td>`;
+          cells+=`<td class="${cls}">${a?(sign+((d/Math.abs(a))*100).toFixed(1)+"%"):"—"}</td>`;
+        } else cells+="<td>—</td><td>—</td>";
+      }
+      return `<tr><td>${name}</td>${cells}</tr>`;}).join("");
+    cmpTable=T(heads,body);
+  }
+
+  $("#pane-monthly").innerHTML=
+    `<h2 class="sec">Monthly Cohort Analysis</h2>
+     <div class="sec-note"><b>Cohort = Delivered month.</b> "Collected same month" means the collection date falls within the delivery month.
+     Example: order delivered 15 Jan, collected 5 Feb → appears in the January cohort as <b>not collected in January</b>, and in the waterfall as collected in February (M+1).
+     This measures how much of each month's deliveries was actually collected during that same month.</div>`+
+    mainTable+
+    `<div class="chartrow">
+       <div class="chartbox"><h3>Same-month collection rate by cohort</h3><canvas id="chCohortRate" height="230"></canvas></div>
+       <div class="chartbox"><h3>Collection waterfall (EGP)</h3><canvas id="chCohortWF" height="230"></canvas></div>
+     </div>
+     <h2 class="sec">Collection waterfall per month</h2>
+     <div class="sec-note">Expand any month to see when its deliveries were collected, month by month</div>`+
+    wfHtml+
+    `<h2 class="sec">Compare months</h2>
+     <div class="sec-note">Pick any combination of months${two?" · Δ = second vs first":""}</div>
+     <div class="chips" id="cmpChips">${chips}</div>`+
+    (sel.length?cmpTable+`<div class="chartrow"><div class="chartbox wide"><h3>Selected months comparison</h3><canvas id="chCompare" height="110"></canvas></div></div>`
+               :'<div class="sec-note">Select at least one month above.</div>');
+
+  reg("Monthly Cohort",[["Delivery Month","Delivered","Net Sales","Same-Mo Orders","Same-Mo EGP","Same-Mo Rate",
+    "Not Collected in Month","Outstanding at End","Collected Later","Later EGP","Still NC","Still Outstanding","Avg Delay","Delayed >7d","Eventual Rate"],
+    ...stats.map(s=>[monthLabel(s.mk),s.n,s.net,s.sameN,s.sameGrand,s.sameRate,s.notSameN,s.notSameAmt,s.laterN,s.laterGrand,s.ncN,s.ncAmt,s.avgDelay,s.delayed7N,s.eventualRate]),
+    ["TOTAL",tot.n,tot.net,tot.sameN,tot.sameGrand,tot.sameRate,tot.notSameN,tot.notSameAmt,tot.laterN,tot.laterGrand,tot.ncN,tot.ncAmt,tot.avgDelay,tot.delayed7N,tot.eventualRate]]);
+  if(sel.length) reg("Month Comparison",[["Metric",...sel.map(s=>monthLabel(s.mk))],
+    ...metrics.map(([name,get])=>[name,...sel.map(s=>get(s))])]);
+
+  $("#cmpChips").addEventListener("click",e=>{
+    const m=e.target.dataset.m;if(!m)return;
+    const mk=+m,i=State.compareMonths.indexOf(mk);
+    if(i>=0)State.compareMonths.splice(i,1);else{State.compareMonths.push(mk);State.compareMonths.sort();}
+    renderMonthly();});
+
+  // charts
+  drawCohortRate(stats);
+  drawCohortWaterfall(stats);
+  if(sel.length) drawCompare(sel);
+}
+
+function drawCohortRate(stats){
+  chart("chCohortRate",{type:"bar",data:{labels:stats.map(s=>monthLabel(s.mk)),datasets:[
+    {label:"Same-month rate",data:stats.map(s=>(s.sameRate||0)*100),backgroundColor:PAL.green},
+    {label:"Eventual rate",data:stats.map(s=>(s.eventualRate||0)*100),backgroundColor:"rgba(94,162,255,.3)",borderColor:PAL.blue,borderWidth:1}]},
+    options:{scales:{y:{min:0,max:100,grid:{color:"#F1F0F6"},ticks:{callback:v=>v+"%"}}},
+      plugins:{legend:{position:"top"}}}});
+}
+function drawCohortWaterfall(stats){
+  chart("chCohortWF",{type:"bar",data:{labels:stats.map(s=>monthLabel(s.mk)),datasets:[
+    {label:"Collected same month (EGP)",data:stats.map(s=>s.sameGrand),backgroundColor:PAL.green,stack:"a"},
+    {label:"Collected later (EGP)",data:stats.map(s=>s.laterGrand),backgroundColor:PAL.blue,stack:"a"},
+    {label:"Still outstanding (EGP)",data:stats.map(s=>s.ncAmt),backgroundColor:PAL.red,stack:"a"}]},
+    options:{scales:{y:{stacked:true,grid:{color:"#F1F0F6"}}},plugins:{legend:{position:"top"}}}});
+}
+function drawCompare(sel){
+  chart("chCompare",{data:{labels:sel.map(s=>monthLabel(s.mk)),datasets:[
+    {type:"bar",label:"Same-month collected (EGP)",data:sel.map(s=>s.sameGrand),backgroundColor:PAL.green},
+    {type:"bar",label:"Outstanding at month end (EGP)",data:sel.map(s=>s.notSameAmt),backgroundColor:PAL.red},
+    {type:"line",label:"Same-month rate %",data:sel.map(s=>(s.sameRate||0)*100),yAxisID:"y2",borderColor:PAL.amber,backgroundColor:PAL.amber,tension:.2}]},
+    options:{scales:{y:{grid:{color:"#F1F0F6"}},y2:{position:"right",min:0,max:100,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
+}
+
+
+/* ---------- Risk Breakdown ---------- */
+function renderRisk(){
+  const b=State.basis, S=tplStats(State.view.rows,b);
+  const row=(name,s,total)=>`<tr${total?' class="total"':""}>
+    <td>${esc(name)}</td><td>${fmtInt(s.yesN)}</td><td>${fmtEGP(s.yesAmt)}</td>
+    <td>${fmtPct(S.tot.yesAmt?s.yesAmt/S.tot.yesAmt:null)}</td>
+    <td>${fmtInt(s.lateN)}</td><td>${fmtEGP(s.lateAmt)}</td>
+    <td>${fmtInt(s.nNC)}</td><td>${fmtEGP(s.ncAmt)}</td></tr>`;
+  const body=S.tpls.map(t=>row(t,S.per[t])).join("")+row("TOTAL",S.tot,true);
+  $("#pane-risk").innerHTML=
+    `<h2 class="sec">Risk Breakdown by 3PL — PMT ${b}</h2>
+     <div class="sec-note">Collected after paid = orders where the seller was paid before cash was collected</div>`+
+    T(["3PL Partner","Orders Collected After Paid","Amount Collected After Paid (EGP)","% of Total Risk","Orders Late Collection (>7d)","Amount Late (EGP)","Not Collected Orders","Not Collected Amount (EGP)"],body)+
+    `<div class="chartrow"><div class="chartbox wide"><h3>Risk exposure by 3PL (EGP)</h3><canvas id="chRisk" height="110"></canvas></div></div>`;
+  reg("Risk Breakdown",[["3PL","Orders After Paid","Amount After Paid","% of Risk","Orders Late","Amount Late","NC Orders","NC Amount"],
+    ...S.tpls.map(t=>{const s=S.per[t];return [t,s.yesN,s.yesAmt,S.tot.yesAmt?s.yesAmt/S.tot.yesAmt:"",s.lateN,s.lateAmt,s.nNC,s.ncAmt];}),
+    ["TOTAL",S.tot.yesN,S.tot.yesAmt,1,S.tot.lateN,S.tot.lateAmt,S.tot.nNC,S.tot.ncAmt]]);
+  drawRisk(S);
+}
+
+/* ---------- Per Seller ---------- */
+function sellerStats(rows,b){
+  const map=new Map();
+  for(const r of rows){
+    let s=map.get(r.seller);
+    if(!s){s={seller:r.seller,ch:r.ch,n:0,net:0,collected:0,befO:0,aftO:0,befE:0,aftE:0,ncAmt:0};map.set(r.seller,s);}
+    s.n++; s.net+=r.grand||0;
+    const f=F(r,b);
+    if(f==="NO")s.befO++; else if(f==="YES")s.aftO++;
+    if(r.comment==="Collected"){s.collected+=r.coll||0; if(f==="NO")s.befE+=r.coll||0; else if(f==="YES")s.aftE+=r.coll||0;}
+    if(r.comment==="Not Collected")s.ncAmt+=r.grand||0;
+  }
+  const list=[...map.values()];
+  for(const s of list){s.unc=s.net-s.collected;s.rate=s.net?s.collected/s.net:null;
+    s.pB=s.net?s.befE/s.net:null;s.pA=s.net?s.aftE/s.net:null;s.pNC=s.net?s.ncAmt/s.net:null;}
+  return list;
+}
+function renderSeller(){
+  const b=State.basis;
+  let list=sellerStats(State.view.rows,b);
+  const q=State.sellerSearch.toLowerCase();
+  if(q) list=list.filter(s=>s.seller.toLowerCase().includes(q));
+  const {key,dir}=State.sellerSort;
+  list.sort((a,z)=>{
+    const va=a[key],vz=z[key];
+    if(typeof va==="string") return va.localeCompare(vz)*dir;
+    return ((va??-Infinity)-(vz??-Infinity))*dir;
+  });
+  const tot=(arr=>{const t={n:0,net:0,collected:0,befO:0,aftO:0,befE:0,aftE:0,ncAmt:0};
+    for(const s of arr){for(const k in t)t[k]+=s[k]||0;}
+    t.unc=t.net-t.collected;t.rate=t.net?t.collected/t.net:null;
+    t.pB=t.net?t.befE/t.net:null;t.pA=t.net?t.aftE/t.net:null;t.pNC=t.net?t.ncAmt/t.net:null;return t;})(list);
+  const tr=(s,total)=>`<tr${total?' class="total"':""}>
+    <td>${esc(total?"TOTAL":s.seller)}</td><td>${total?"":esc(s.ch)}</td><td>${fmtInt(s.n)}</td>
+    <td>${fmtEGP(s.net)}</td><td>${fmtEGP(s.collected)}</td><td>${fmtEGP(s.unc)}</td>
+    <td class="${rateCls(s.rate)}">${fmtPct(s.rate)}</td>
+    <td>${fmtPct(s.pB)}</td><td>${fmtPct(s.pA)}</td><td>${fmtPct(s.pNC)}</td>
+    <td>${fmtInt(s.befO)}</td><td>${fmtInt(s.aftO)}</td><td>${fmtEGP(s.befE)}</td><td>${fmtEGP(s.aftE)}</td></tr>`;
+  const cols=[["seller","Seller"],["ch","Channel"],["n","Orders"],["net","Net Sales (EGP)"],["collected","Collected (EGP)"],["unc","Uncollected (EGP)"],["rate","Rate %"],["pB","% Before Paid"],["pA","% After Paid"],["pNC","% Not Coll"],["befO","Before-Paid Orders"],["aftO","After-Paid Orders"],["befE","Before-Paid EGP"],["aftE","After-Paid EGP"]];
+  const heads=cols.map(([k,t])=>({t:t+(key===k?(dir>0?" ▲":" ▼"):""),cls:"sortable",attr:` data-k="${k}"`}));
+  $("#pane-seller").innerHTML=
+    `<h2 class="sec">Per-Seller Delivery & Collection — ${b===2?"Table 2 (Payment Date + 7d)":"Table 1 (Payment Date)"}</h2>
+     <div style="margin:8px 0 12px"><input type="text" id="sellerSearch" placeholder="Search seller… (${fmtInt(list.length)} shown)" value="${esc(State.sellerSearch)}" style="min-width:280px"></div>`+
+    T(heads,list.map(s=>tr(s)).join("")+tr(tot,true),{id:"sellerTable"});
+  reg(`Per Seller (Table ${b})`,[cols.map(c=>c[1]),
+    ...list.map(s=>[s.seller,s.ch,s.n,s.net,s.collected,s.unc,s.rate,s.pB,s.pA,s.pNC,s.befO,s.aftO,s.befE,s.aftE]),
+    ["TOTAL","",tot.n,tot.net,tot.collected,tot.unc,tot.rate,tot.pB,tot.pA,tot.pNC,tot.befO,tot.aftO,tot.befE,tot.aftE]]);
+  const inp=$("#sellerSearch");
+  inp.addEventListener("input",()=>{State.sellerSearch=inp.value;
+    clearTimeout(inp._t);inp._t=setTimeout(()=>{renderSeller();const i2=$("#sellerSearch");i2.focus();i2.setSelectionRange(i2.value.length,i2.value.length);},250);});
+  $("#sellerTable thead").addEventListener("click",e=>{
+    const k=e.target.dataset.k;if(!k)return;
+    State.sellerSort= State.sellerSort.key===k?{key:k,dir:-State.sellerSort.dir}:{key:k,dir:k==="seller"||k==="ch"?1:-1};
+    renderSeller();});
+}
+
+
+
+function deepMonthStats(mk,forceTpl){
+  const snap=monthEndDay(mk);
+  let rows=deriveRows(State.orders.filter(r=>r.dd!=null&&monthKey(r.dd)===mk),snap);
+  if(forceTpl) rows=rows.filter(r=>r.tpl===forceTpl);
+  if(State.channel) rows=rows.filter(r=>r.ch===State.channel);
+  const col=rows.filter(r=>r.comment==="Collected");
+  const net=sum(rows.map(r=>r.grand||0));
+  const collected=sum(col.map(r=>r.coll||0));
+  return {mk,n:rows.length,nCol:col.length,net,collected,outstanding:net-collected,
+    rate:net?collected/net:null,
+    avgDelay:mean(col.map(r=>r.d2c).filter(v=>v!=null)),
+    delayedN:rows.filter(r=>r.late==="YES").length};
+}
+
+/* ---------- 3PL Deep Dive ---------- */
+
+/* Payment term schedules: for each 3PL, which delivery days map to which transfer day.
+   dow: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat */
+const PAYMENT_TERMS={
+  "Bosta":{
+    label:"Sun / Tue / Thu",
+    cycles:[
+      {transferDow:0,transferLabel:"Sunday",   deliveryDows:[3,4,5],deliveryLabel:"Wed–Fri"},
+      {transferDow:2,transferLabel:"Tuesday",  deliveryDows:[6,0],  deliveryLabel:"Sat–Sun"},
+      {transferDow:4,transferLabel:"Thursday", deliveryDows:[1,2],  deliveryLabel:"Mon–Tue"}
+    ]},
+  "Raya":{
+    label:"Sun / Wed",
+    cycles:[
+      {transferDow:0,transferLabel:"Sunday",   deliveryDows:[3,4,5,6],deliveryLabel:"Wed–Sat"},
+      {transferDow:3,transferLabel:"Wednesday",deliveryDows:[0,1,2],  deliveryLabel:"Sun–Tue"}
+    ]},
+  "Aramex":{
+    label:"Sun / Wed",
+    cycles:[
+      {transferDow:0,transferLabel:"Sunday",   deliveryDows:[3,4,5,6],deliveryLabel:"Wed–Sat"},
+      {transferDow:3,transferLabel:"Wednesday",deliveryDows:[0,1,2],  deliveryLabel:"Sun–Tue"}
+    ]},
+  "Aramex El Mashreq":{
+    label:"Sun / Wed",
+    cycles:[
+      {transferDow:0,transferLabel:"Sunday",   deliveryDows:[3,4,5,6],deliveryLabel:"Wed–Sat"},
+      {transferDow:3,transferLabel:"Wednesday",deliveryDows:[0,1,2],  deliveryLabel:"Sun–Tue"}
+    ]}
+};
+
+function expectedCollDate(dd,tpl){
+  const terms=PAYMENT_TERMS[tpl];
+  if(!terms||dd==null) return null;
+  const d=dow(dd);
+  for(const c of terms.cycles){
+    if(c.deliveryDows.includes(d)){
+      let diff=(c.transferDow-d+7)%7;
+      if(diff===0) diff=7;
+      return dd+diff;
+    }
+  }
+  return null;
+}
+
+function tplPerformance(tpl,rows){
+  const today=Math.floor(Date.now()/MS_DAY);
+  const hasTerm=!!PAYMENT_TERMS[tpl];
+  let expAmt=0, actAmt=0, outAmt=0, overdueAmt=0, overdueN=0;
+  let delayedN=0, onTimeN=0, totalWithExp=0;
+  let delays=[], lastColl=null;
+  for(const r of rows){
+    const ecd=expectedCollDate(r.dd,tpl);
+    const isCollected=(r.origComment||r.comment)==="Collected"&&r.cd!=null;
+    if(ecd!=null){
+      totalWithExp++;
+      if(ecd<=today) expAmt+=r.grand||0;
+      if(isCollected){
+        actAmt+=r.coll||0;
+        const delay=r.cd-ecd;
+        delays.push(delay);
+        if(delay>0) delayedN++; else onTimeN++;
+        if(lastColl==null||r.cd>lastColl) lastColl=r.cd;
+      } else {
+        if(ecd<=today){overdueAmt+=r.grand||0;overdueN++;}
+        outAmt+=r.grand||0;
+      }
+    } else {
+      // no term defined — use basic stats
+      if(isCollected){
+        actAmt+=r.coll||0;
+        if(lastColl==null||r.cd>lastColl) lastColl=r.cd;
+      } else { outAmt+=r.grand||0; }
+    }
+  }
+  const avgDelay=mean(delays);
+  const onTimePct=totalWithExp?(onTimeN/totalWithExp):null;
+  let rating="—";
+  if(onTimePct!=null){
+    if(onTimePct>=.95) rating="A"; else if(onTimePct>=.85) rating="B";
+    else if(onTimePct>=.70) rating="C"; else if(onTimePct>=.50) rating="D"; else rating="F";
+  }
+  return {tpl,hasTerm,n:rows.length,expAmt,actAmt,outAmt,overdueAmt,overdueN,
+    delayedN,onTimeN,totalWithExp,avgDelay,lastColl,onTimePct,rating};
+}
+
+function renderDeep(){
+  const b=State.basis;
+  // Use ALL orders (unfiltered by 3PL) — we show every 3PL stacked
+  const allOrders=State.orders;
+  let allDerived;
+  if(State.scope==="all"){
+    const maxDD=Math.max(...allOrders.filter(r=>r.dd!=null).map(r=>r.dd));
+    const snap=monthEndDay(monthKey(maxDD));
+    allDerived=deriveRows(allOrders,snap);
+  } else {
+    const mk=+State.scope, ms=monthStartDay(mk), me=monthEndDay(mk);
+    const scoped=allOrders.filter(r=>r.dd!=null&&r.dd>=ms&&r.dd<=me);
+    allDerived=deriveRowsCohort?deriveRowsCohort(scoped,me,ms,me):deriveRows(scoped,me);
+  }
+  if(State.channel) allDerived=allDerived.filter(r=>r.ch===State.channel);
+  const tpls=[...new Set(allDerived.map(r=>r.tpl))].sort();
+  if(!tpls.length){$("#pane-deep").innerHTML='<div class="empty"><div class="t">No data in this period</div></div>';return;}
+
+  const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let sections="";
+
+  for(const tpl of tpls){
+    const rows=allDerived.filter(r=>r.tpl===tpl);
+    const perf=tplPerformance(tpl,rows);
+    const S=tplStats(rows,b).tot;
+    const badgeCls={"A":"badge-a","B":"badge-b","C":"badge-c","D":"badge-d","F":"badge-f"}[perf.rating]||"";
+
+    // payment schedule display
+    const term=PAYMENT_TERMS[tpl];
+    let schedHtml="";
+    if(term){
+      schedHtml=`<div class="term-sched">${term.cycles.map(c=>
+        `<div class="term-day"><b>${c.transferLabel}</b> transfer <span>← delivered ${c.deliveryLabel}</span></div>`
+      ).join("")}</div>`;
+    } else {
+      schedHtml=`<div class="sec-note" style="margin:6px 0">No payment terms defined for this 3PL</div>`;
+    }
+
+    // monthly cohorts for this 3PL
+    const mstats=State.months.map(m=>deepMonthStats(m,tpl)).filter(s=>s.n>0);
+    const mrows=mstats.map(s=>`<tr><td>${monthLabel(s.mk)}</td><td>${fmtInt(s.n)}</td><td>${fmtEGP(s.net)}</td>
+      <td>${fmtEGP(s.collected)}</td><td class="${s.outstanding>0.005?"bad":""}">${fmtEGP(s.outstanding)}</td>
+      <td class="${rateCls(s.rate)}">${fmtPct(s.rate)}</td><td>${fmtDays(s.avgDelay)}</td><td>${fmtInt(s.delayedN)}</td></tr>`).join("");
+
+    // overdue detail table (top 20)
+    let overdueTable="";
+    if(perf.overdueN>0){
+      const today=Math.floor(Date.now()/MS_DAY);
+      const odRows=rows.filter(r=>{
+        const ecd=expectedCollDate(r.dd,tpl);
+        return ecd!=null&&ecd<=today&&(r.origComment||r.comment)!=="Collected";
+      }).sort((a,z)=>expectedCollDate(a.dd,tpl)-expectedCollDate(z.dd,tpl)).slice(0,20);
+      const odBody=odRows.map(r=>{
+        const ecd=expectedCollDate(r.dd,tpl);
+        const overdueDays=today-ecd;
+        return `<tr><td style="font-family:var(--mono)">${esc(r.tn)}</td><td>${fmtDate(r.dd)}</td>
+          <td>${fmtDate(ecd)}</td><td class="bad">${fmtInt(overdueDays)} days</td>
+          <td>${fmtEGP(r.grand)}</td></tr>`;
+      }).join("");
+      overdueTable=`<details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;font-size:12.5px;color:var(--red)">⚠ ${fmtInt(perf.overdueN)} overdue orders — ${fmtEGP(perf.overdueAmt)} EGP (showing top 20)</summary>
+        <div style="margin:8px 0">${T(["Tracking Number","Delivery Date","Expected Collection","Overdue By","Amount (EGP)"],odBody)}</div></details>`;
+    }
+
+    sections+=`<div class="tpl-section">
+      <h3>${esc(tpl)} <span class="badge ${badgeCls}">${perf.rating} — ${perf.hasTerm?fmtPct(perf.onTimePct)+" on-time":"no terms"}</span></h3>
+      <div class="sub">Payment schedule: ${term?term.label:"not defined"} · ${fmtInt(S.n)} orders in scope</div>
+      ${schedHtml}
+      <div class="tpl-kpis">
+        <div class="tpl-kpi"><div class="l">Expected collection</div><div class="v">${fmtEGP(perf.expAmt)}</div><div class="s">orders past expected date</div></div>
+        <div class="tpl-kpi"><div class="l">Actual collected</div><div class="v" style="color:var(--green)">${fmtEGP(perf.actAmt)}</div></div>
+        <div class="tpl-kpi"><div class="l">Outstanding</div><div class="v" style="color:var(--amber)">${fmtEGP(perf.outAmt)}</div></div>
+        <div class="tpl-kpi"><div class="l">Overdue amount</div><div class="v" style="color:var(--red)">${fmtEGP(perf.overdueAmt)}</div><div class="s">${fmtInt(perf.overdueN)} orders past due</div></div>
+        <div class="tpl-kpi"><div class="l">Delayed transfers</div><div class="v">${fmtInt(perf.delayedN)}</div><div class="s">of ${fmtInt(perf.totalWithExp)} with expected date</div></div>
+        <div class="tpl-kpi"><div class="l">On-time transfers</div><div class="v" style="color:var(--green)">${fmtInt(perf.onTimeN)}</div><div class="s">${fmtPct(perf.onTimePct)}</div></div>
+        <div class="tpl-kpi"><div class="l">Average delay</div><div class="v">${fmtDays(perf.avgDelay)} d</div><div class="s">vs expected date</div></div>
+        <div class="tpl-kpi"><div class="l">Last transfer</div><div class="v" style="font-size:13px">${perf.lastColl?fmtDate(perf.lastColl):"—"}</div></div>
+      </div>
+      ${overdueTable}
+      <details style="margin:4px 0"><summary style="cursor:pointer;font-weight:600;font-size:12.5px;color:var(--dim)">Monthly performance (eventual collection)</summary>
+        <div style="margin:8px 0">${mrows.length?T(["Delivery Month","Orders","Net Sales (EGP)","Collected (EGP)","Outstanding (EGP)","Rate %","Avg Delay (d)","Delayed >7d"],mrows):'<div class="sec-note">No data</div>'}</div></details>
+    </div>`;
+
+    reg(`${tpl} Performance`,[["Metric","Value"],
+      ["Orders",S.n],["Expected Collection",perf.expAmt],["Actual Collected",perf.actAmt],
+      ["Outstanding",perf.outAmt],["Overdue Amount",perf.overdueAmt],["Overdue Orders",perf.overdueN],
+      ["Delayed Transfers",perf.delayedN],["On-Time",perf.onTimeN],["On-Time %",perf.onTimePct],
+      ["Average Delay",perf.avgDelay],["Last Transfer",perf.lastColl?fmtDate(perf.lastColl):""],
+      ["Rating",perf.rating]]);
+  }
+
+  $("#pane-deep").innerHTML=
+    `<h2 class="sec">3PL Performance & Payment Term Monitoring</h2>
+     <div class="sec-note">Each 3PL shown separately with expected vs actual collections based on defined payment schedules.
+     Rating: A ≥95% on-time · B ≥85% · C ≥70% · D ≥50% · F &lt;50%. Period and channel filters apply.</div>`+
+    sections+
+    `<div class="chartrow"><div class="chartbox wide"><h3>On-time rate by 3PL</h3><canvas id="chDeepPerf" height="110"></canvas></div></div>`;
+
+  // chart
+  const perfData=tpls.map(t=>tplPerformance(t,allDerived.filter(r=>r.tpl===t)));
+  chart("chDeepPerf",{type:"bar",data:{labels:perfData.map(p=>p.tpl),datasets:[
+    {label:"On-time %",data:perfData.map(p=>(p.onTimePct||0)*100),backgroundColor:perfData.map(p=>
+      p.rating==="A"?PAL.green:p.rating==="B"?PAL.blue:p.rating==="C"?PAL.amber:PAL.red)},
+    {label:"Overdue (EGP)",data:perfData.map(p=>p.overdueAmt),yAxisID:"y2",type:"line",
+      borderColor:PAL.red,backgroundColor:PAL.red,tension:.2}]},
+    options:{scales:{y:{min:0,max:100,grid:{color:"#F1F0F6"},ticks:{callback:v=>v+"%"}},
+      y2:{position:"right",grid:{display:false}}}}});
+}
+
+
+/* ---------- Transfers (payment terms & upcoming) ---------- */
+function inferTerms(){
+  const per={};
+  for(const r of State.orders){
+    if(r.cd==null||r.pd==null||r.comment!=="Collected") continue;
+    (per[r.tpl]=per[r.tpl]||{c2p:[],dows:{}});
+    per[r.tpl].c2p.push(r.pd-r.cd);
+    per[r.tpl].dows[dow(r.pd)]=(per[r.tpl].dows[dow(r.pd)]||0)+1;
+  }
+  const out={};
+  for(const t in per){
+    const a=per[t].c2p.sort((x,y)=>x-y);
+    const med=a.length?a[Math.floor(a.length/2)]:7;
+    out[t]={inferred:Math.max(1,med),dows:per[t].dows,n:a.length};
+  }
+  return out;
+}
+function termOf(t){ const s=State.terms||{}; return (s[t]!=null&&s[t]>0)?s[t]:(State._inferred&&State._inferred[t]?State._inferred[t].inferred:7); }
+function renderTransfers(){
+  const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  State._inferred=inferTerms();
+  const tpls=[...new Set(State.orders.map(r=>r.tpl))].sort();
+  if(!tpls.length){$("#pane-transfers").innerHTML='<div class="empty"><div class="t">No data yet</div>Import a file first.</div>';return;}
+  const today=Math.floor(Date.now()/MS_DAY);
+
+  // terms editor
+  const trows=tpls.map(t=>{
+    const inf=State._inferred[t]||{inferred:7,dows:{},n:0};
+    const topDows=Object.entries(inf.dows).sort((a,z)=>z[1]-a[1]).slice(0,2)
+      .map(([d,c])=>`${DAYS[d]} ${fmtPct(c/Math.max(1,inf.n))}`).join(" · ")||"—";
+    const v=termOf(t);
+    return `<tr><td>${esc(t)}</td>
+      <td>${fmtInt(inf.n)}</td><td>${fmtDays(inf.inferred)} d</td>
+      <td style="font-family:var(--sans)">${topDows}</td>
+      <td><input type="number" min="1" max="60" step="1" value="${v}" data-term="${esc(t)}" style="width:80px;background:var(--ink);color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:5px 8px;font-family:var(--mono)"></td></tr>`;}).join("");
+  const termsTable=T(["3PL Partner","Observed payments","Median Coll→Pay (data)","Usual transfer days","Payment term (days) — editable"],trows);
+
+  // scheduled: future payment dates in data
+  const rowsAll=State.orders;
+  const sched=new Map();
+  for(const r of rowsAll){
+    if(r.pd==null||r.pd<today) continue;
+    const k=r.pd+"|"+r.tpl;
+    let g=sched.get(k); if(!g){g={pd:r.pd,tpl:r.tpl,n:0,amt:0};sched.set(k,g);}
+    g.n++; g.amt+=(r.comment==="Collected"?(r.coll||0):(r.grand||0));
+  }
+  const schedList=[...sched.values()].sort((a,z)=>a.pd-z.pd||a.tpl.localeCompare(z.tpl));
+
+  // estimated: collected, no payment date yet → collection date + term
+  const est=new Map(); let overdue=new Map();
+  for(const r of rowsAll){
+    if(r.comment!=="Collected"||r.pd!=null||r.cd==null) continue;
+    const ep=r.cd+termOf(r.tpl);
+    const tgt=ep>=today?est:overdue;
+    const k=ep+"|"+r.tpl;
+    let g=tgt.get(k); if(!g){g={pd:ep,tpl:r.tpl,n:0,amt:0};tgt.set(k,g);}
+    g.n++; g.amt+=r.coll||0;
+  }
+  const estList=[...est.values()].sort((a,z)=>a.pd-z.pd);
+  const odAgg=(()=>{const m=new Map();for(const g of overdue.values()){let x=m.get(g.tpl);if(!x){x={tpl:g.tpl,n:0,amt:0};m.set(g.tpl,x);}x.n+=g.n;x.amt+=g.amt;}return [...m.values()].sort((a,z)=>z.amt-a.amt);})();
+
+  const within=(list,d)=>sum(list.filter(g=>g.pd<=today+d).map(g=>g.amt));
+  const cards=`<div class="kpis">
+    <div class="kpi"><div class="l">Scheduled next 7 days</div><div class="v">${fmtEGP(within(schedList,7))}</div><div class="s">from payment dates in the data</div></div>
+    <div class="kpi"><div class="l">Scheduled next 30 days</div><div class="v">${fmtEGP(within(schedList,30))}</div></div>
+    <div class="kpi"><div class="l">Estimated next 30 days</div><div class="v" style="color:var(--blue)">${fmtEGP(within(estList,30))}</div><div class="s">collected, awaiting a payment date</div></div>
+    <div class="kpi"><div class="l">Past expected, unpaid</div><div class="v" style="color:var(--amber)">${fmtEGP(sum(odAgg.map(g=>g.amt)))}</div><div class="s">${fmtInt(sum(odAgg.map(g=>g.n)))} orders — check with 3PL</div></div>
+  </div>`;
+
+  const schedRows=schedList.map(g=>`<tr><td>${fmtDate(g.pd)} <span class="dim">${DAYS[dow(g.pd)]}</span></td>
+    <td style="font-family:var(--sans)">${esc(g.tpl)}</td><td>${fmtInt(g.n)}</td><td>${fmtEGP(g.amt)}</td></tr>`).join("");
+  const estRows=estList.map(g=>`<tr><td>${fmtDate(g.pd)} <span class="dim">${DAYS[dow(g.pd)]}</span></td>
+    <td style="font-family:var(--sans)">${esc(g.tpl)}</td><td>${fmtInt(g.n)}</td><td>${fmtEGP(g.amt)}</td></tr>`).join("");
+  const odRows=odAgg.map(g=>`<tr><td style="font-family:var(--sans)">${esc(g.tpl)}</td><td>${fmtInt(g.n)}</td><td class="warn">${fmtEGP(g.amt)}</td></tr>`).join("");
+
+  $("#pane-transfers").innerHTML=
+    `<h2 class="sec">Upcoming transfers</h2>
+     <div class="sec-note">Scheduled = future payment dates already in your data · Estimated = collected orders without a payment date, projected as collection date + payment term. Uses all stored data (filters above don't apply).</div>`+
+    cards+
+    `<h2 class="sec">Payment terms by 3PL</h2>
+     <div class="sec-note">Defaults are inferred from your data (median collection→payment). Edit and it saves automatically.</div>`+
+    termsTable+
+    `<h2 class="sec">Scheduled transfers (payment dates in data)</h2>`+
+    (schedRows?T(["Expected Date","3PL","Orders","Expected Amount (EGP)"],schedRows):'<div class="sec-note">No payment dates after today in the imported data.</div>')+
+    `<h2 class="sec">Estimated transfers (no payment date yet)</h2>`+
+    (estRows?T(["Estimated Date","3PL","Orders","Estimated Amount (EGP)"],estRows):'<div class="sec-note">Nothing pending — every collected order already has a payment date.</div>')+
+    (odRows?`<h2 class="sec">Past expected date, still unpaid</h2>`+T(["3PL","Orders","Amount (EGP)"],odRows):"");
+  reg("Terms",[["3PL","Observed payments","Median Coll→Pay","Term days"],...tpls.map(t=>[t,(State._inferred[t]||{}).n||0,(State._inferred[t]||{}).inferred||"",termOf(t)])]);
+  if(schedList.length) reg("Scheduled Transfers",[["Date","3PL","Orders","Amount"],...schedList.map(g=>[fmtDate(g.pd),g.tpl,g.n,g.amt])]);
+  if(estList.length) reg("Estimated Transfers",[["Date","3PL","Orders","Amount"],...estList.map(g=>[fmtDate(g.pd),g.tpl,g.n,g.amt])]);
+  $("#pane-transfers").querySelectorAll("input[data-term]").forEach(inp=>{
+    inp.addEventListener("change",async()=>{
+      const t=inp.dataset.term, v=Math.max(1,Math.min(60,parseInt(inp.value)||7));
+      State.terms[t]=v;
+      await DB.putSetting("terms",State.terms);
+      renderTransfers();
+    });
+  });
+}
+
+/* ---------- Data tab ---------- */
+function renderData(){
+  const o=State.orders;
+  const byM={},by3={};
+  for(const r of o){ if(r.dd!=null){const k=monthKey(r.dd);byM[k]=(byM[k]||0)+1;} by3[r.tpl]=(by3[r.tpl]||0)+1; }
+  const stats=o.length?`<div class="statgrid">
+      <div class="kpi"><div class="l">Orders stored</div><div class="v">${fmtInt(o.length)}</div></div>
+      <div class="kpi"><div class="l">Months covered</div><div class="v">${Object.keys(byM).length}</div><div class="s">${Object.keys(byM).sort().map(k=>monthLabel(+k)).join(" · ")}</div></div>
+      <div class="kpi"><div class="l">3PL partners</div><div class="v">${Object.keys(by3).length}</div><div class="s">${Object.entries(by3).sort().map(([k,v])=>`${k} ${fmtInt(v)}`).join(" · ")}</div></div>
+    </div>`:"";
+  const imps=State.imports.slice().reverse().map(i=>`<tr>
+      <td>${esc(i.name)}</td><td>${new Date(i.at).toLocaleString('en-GB')}</td><td>${fmtInt(i.rows)}</td>
+      <td style="font-family:var(--sans)">${esc(i.months||"")}</td>
+      <td class="dim" style="font-family:var(--sans);font-size:11.5px">${i.info?`sheet: ${esc(i.info.sheet)} · sellers: ${esc(i.info.sellerSheet)}${i.info.skipped?` · skipped ${fmtInt(i.info.skipped)} rows`:""}${i.info.noSeller?` · ${fmtInt(i.info.noSeller)} without seller`:""}`:""}</td></tr>`).join("");
+  $("#pane-data").innerHTML=`
+    <h2 class="sec">Import data</h2>
+    <div class="sec-note">Reads the <b>Details</b> sheet (orders) and the <b>Sellers</b> sheet (seller per tracking number). The Query result sheet is ignored. Re-importing an updated file refreshes existing orders by tracking number — history is preserved.</div>
+    <div class="dropzone" id="dropzone">
+      <div class="big">Drop files here — auto-detects format</div>
+      <div class="small">
+        <b>Option A:</b> Drop 3 files together — Journal + Collections + Sellers<br>
+        <b>Option B:</b> Drop a single legacy file with Details + Sellers sheets<br>
+        Imports run in the background, the app won't freeze
+      </div>
+    </div>
+    <div class="sec-note" style="margin-top:8px">
+      <b>New 3-file format:</b> Journal (3PL, tracking, amounts, delivery/payment dates) + Collections (tracking, collection date) + Sellers (source_vendor, tracking, amounts).
+      Collection status is determined automatically: tracking numbers found in the Collections file → Collected, others → Not Collected.
+      Returns are managed separately in the <b>Returns</b> tab.
+    </div>
+    ${stats}
+    <h2 class="sec">Import history</h2>
+    ${State.imports.length?T(["File","Imported at","Rows","Months in file","Details"],imps):'<div class="sec-note">Nothing imported yet.</div>'}
+    <div style="margin-top:22px"><button class="btn danger" id="btnClear">✕ Clear all stored data</button></div>`;
+  const dz=$("#dropzone");
+  dz.addEventListener("click",()=>$("#fileInput").click());
+  dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag")});
+  dz.addEventListener("dragleave",()=>dz.classList.remove("drag"));
+  dz.addEventListener("drop",e=>{e.preventDefault();dz.classList.remove("drag");if(e.dataTransfer.files.length)importFiles([...e.dataTransfer.files]);});
+  $("#btnClear").addEventListener("click",async()=>{
+    if(!confirm("Delete ALL stored orders and import history from this browser? This cannot be undone."))return;
+    await DB.clearAll(); await loadData();
+  });
+}
+
+/* ---------- Charts ---------- */
+Chart.defaults.color="#6B6B80"; Chart.defaults.borderColor="#E8E5F0";
+Chart.defaults.font.family="'JetBrains Mono','IBM Plex Mono',monospace"; Chart.defaults.font.size=11;
+function chart(id,cfg){ if(State.charts[id])State.charts[id].destroy(); const el=$("#"+id); if(!el)return; State.charts[id]=new Chart(el,cfg); }
+const PAL={green:"#00F159",red:"#FF3654",amber:"#FFA900",blue:"#7E00E1",dim:"#5A5A72"};
+function drawDonut(k){
+  chart("chDonut",{type:"doughnut",data:{labels:["Collected","Not collected","Return"],
+    datasets:[{data:[k.colAmt,k.ncAmt,k.retAmt],backgroundColor:[PAL.green,PAL.red,PAL.amber],borderColor:"#131C2E",borderWidth:2}]},
+    options:{plugins:{legend:{position:"right"}},cutout:"62%"}});
+}
+function drawCycleBars(k1,k2){
+  chart("chCycle",{type:"bar",data:{labels:["Del→Coll","Coll→Pay","Total cycle (Coll−Pay)"],
+    datasets:[{label:"PMT 1",data:[k1.avgD2C,k1.avgC2P,k1.avgCyc],backgroundColor:PAL.blue},
+              {label:"PMT 2 (+7d)",data:[k2.avgD2C,k2.avgC2P,k2.avgCyc],backgroundColor:PAL.dim}]},
+    options:{plugins:{legend:{position:"top"}},scales:{y:{grid:{color:"#F1F0F6"}}}}});
+}
+function draw3PL(S){
+  chart("ch3pl",{data:{labels:S.tpls,datasets:[
+    {type:"bar",label:"Collected (EGP)",data:S.tpls.map(t=>S.per[t].colAmt),backgroundColor:PAL.green,stack:"a"},
+    {type:"bar",label:"Uncollected (EGP)",data:S.tpls.map(t=>S.per[t].unc),backgroundColor:PAL.red,stack:"a"},
+    {type:"line",label:"Collection rate",data:S.tpls.map(t=>(S.per[t].rate||0)*100),yAxisID:"y2",borderColor:PAL.amber,backgroundColor:PAL.amber,tension:.2}]},
+    options:{scales:{y:{stacked:true,grid:{color:"#F1F0F6"}},y2:{position:"right",min:0,max:100,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
+}
+function drawWeekly(data){
+  chart("chWeek",{data:{labels:data.map(x=>"Wk "+x.bk.wk),datasets:[
+    {type:"bar",label:"Net sales (EGP)",data:data.map(x=>x.s.net),backgroundColor:PAL.dim},
+    {type:"bar",label:"Collected (EGP)",data:data.map(x=>x.s.collected),backgroundColor:PAL.green},
+    {type:"line",label:"Rate",data:data.map(x=>(x.s.rate||0)*100),yAxisID:"y2",borderColor:PAL.amber,backgroundColor:PAL.amber,tension:.25}]},
+    options:{scales:{y:{grid:{color:"#F1F0F6"}},y2:{position:"right",min:0,max:100,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
+}
+function drawRisk(S){
+  chart("chRisk",{type:"bar",data:{labels:S.tpls,datasets:[
+    {label:"Collected after paid (EGP)",data:S.tpls.map(t=>S.per[t].yesAmt),backgroundColor:PAL.amber},
+    {label:"Late collection (EGP)",data:S.tpls.map(t=>S.per[t].lateAmt),backgroundColor:PAL.blue},
+    {label:"Not collected (EGP)",data:S.tpls.map(t=>S.per[t].ncAmt),backgroundColor:PAL.red}]},
+    options:{scales:{y:{grid:{color:"#F1F0F6"}}}}});
+}
+
+/* ---------- Export current tab ---------- */
+function exportTab(){
+  if(!State.exportTables.length){alert("Nothing to export on this tab.");return;}
+  const wb=XLSX.utils.book_new();
+  for(const t of State.exportTables){
+    const ws=XLSX.utils.aoa_to_sheet(t.aoa);
+    XLSX.utils.book_append_sheet(wb,ws,t.name.slice(0,31));
+  }
+  const scope=State.scope==="all"?"AllData":monthLabel(+State.scope).replace(" ","_");
+  XLSX.writeFile(wb,`Kenzz_COD_${State.tab}_${scope}.xlsx`);
+}
+
+/* ---------- Boot & wiring ---------- */
+async function loadData(){
+  State.orders=await DB.getAll("orders");
+  State.returnSet=new Set((await DB.getAll("returns")).map(r=>r.tn));
+  State.terms=(await DB.getSetting("terms"))||{};
+  State.imports=await DB.getAll("imports");
+  State.months=[...new Set(State.orders.filter(r=>r.dd!=null).map(r=>monthKey(r.dd)))].sort();
+  State.tpls=[...new Set(State.orders.map(r=>r.tpl))].sort();
+  const selM=$("#selMonth");
+  const cur=State.scope;
+  selM.innerHTML=`<option value="all">All data</option>`+State.months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join("");
+  if(cur!=="all"&&State.months.includes(+cur)) selM.value=cur; else if(cur!=="all"){State.scope=State.months.length?String(State.months[State.months.length-1]):"all";selM.value=State.scope;}
+  else if(State.months.length&&cur==="all"&&!State._touched){State.scope=String(State.months[State.months.length-1]);selM.value=State.scope;}
+  const sel3=$("#sel3pl");
+  sel3.innerHTML=`<option value="">All 3PLs</option>`+State.tpls.map(t=>`<option${State.tpl===t?" selected":""}>${esc(t)}</option>`).join("");
+  renderAll();
+}
+$("#selMonth").addEventListener("change",e=>{State.scope=e.target.value;State._touched=true;renderAll();});
+$("#sel3pl").addEventListener("change",e=>{State.tpl=e.target.value;renderAll();});
+$("#selChannel").addEventListener("change",e=>{State.channel=e.target.value;renderAll();});
+$("#segBasis").addEventListener("click",e=>{
+  const b=e.target.dataset.b;if(!b)return;
+  State.basis=+b;$$("#segBasis button").forEach(x=>x.classList.toggle("on",x.dataset.b===b));renderAll();});
+$("#tabs").addEventListener("click",e=>{
+  const t=e.target.dataset.t;if(!t)return;
+  State.tab=t;$$("#tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t===t));
+  $$(".tabpane").forEach(p=>p.classList.toggle("on",p.id==="pane-"+t));renderAll();});
+$("#btnRefresh").addEventListener("click",()=>loadData());
+$("#btnExport").addEventListener("click",exportTab);
+$("#fileInput").addEventListener("change",e=>{if(e.target.files.length)importFiles([...e.target.files]);e.target.value="";});
+
+DB.open().then(loadData).catch(err=>alert("Could not open the local database: "+err));
+</script>
+
+
+<script>
+/* ================= Multi-file Import (Journal + Collections + Expected) =================
+   Auto-detects file type by column headers:
+   - Journal: has delivery_date + payment_date + third_party_logistics_partner
+   - Collections: has collection_date + tracking_number (few columns)
+   - Sellers: has source_vendor + tracking_number + grand_total (no dates)
+   Also supports legacy single-file format (Details + Sellers sheets).               */
+
+function detectFileType(wb,XL){
+  const norm=v=>String(v==null?"":v).toLowerCase().replace(/[_\s]+/g," ").trim();
+  const keys=Object.keys(wb.Sheets);
+  // legacy: has "Details" sheet → old format
+  if(keys.some(k=>norm(k)==="details")) return "legacy";
+  // scan first sheet headers
+  const rows=XL.utils.sheet_to_json(wb.Sheets[keys[0]],{header:1,raw:true,defval:null});
+  let hIdx=-1;
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    if((rows[i]||[]).some(c=>norm(c).includes("tracking"))){hIdx=i;break;}
+  }
+  if(hIdx<0) return "unknown";
+  const hdr=(rows[hIdx]||[]).map(norm);
+  const has=(...terms)=>terms.some(t=>hdr.some(h=>h.includes(t)));
+  if(has("delivery") && has("payment") && has("third party","3pl","logistics")) return "journal";
+  if(has("collection date") && !has("delivery") && !has("source vendor")) return "collections";
+  if(has("source vendor") && has("grand total") && !has("delivery")) return "expected";
+  // fallback heuristics
+  if(hdr.length<=5 && has("collection")) return "collections";
+  if(has("source vendor")) return "expected";
+  if(has("grand total") && has("delivery")) return "journal";
+  return "unknown";
+}
+
+function parseJournal(wb,XL){
+  const norm=v=>String(v==null?"":v).toLowerCase().replace(/[_\s]+/g," ").trim();
+  const keys=Object.keys(wb.Sheets);
+  const rows=XL.utils.sheet_to_json(wb.Sheets[keys[0]],{header:1,raw:true,defval:null});
+  let hIdx=-1;
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    if((rows[i]||[]).some(c=>norm(c).includes("tracking"))){hIdx=i;break;}
+  }
+  if(hIdx<0) throw new Error("Journal: no header row with tracking_number found");
+  const hdr=(rows[hIdx]||[]).map(norm);
+  const col=(...names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+  const C={
+    tpl:col("third party","3pl","logistics"),
+    tn:col("tracking number","tracking"),
+    mp:col("mp stock"),
+    retail:col("retail"),
+    grand:col("grand total"),
+    dd:col("delivery date","delivery"),
+    pd:col("payment date"),
+    pd2:-1
+  };
+  // find payment date 2 (must not be the same index as pd)
+  const pd2candidates=hdr.reduce((a,h,i)=>{if(h.includes("payment") && h.includes("2") && i!==C.pd)a.push(i);return a;},[]);
+  C.pd2=pd2candidates.length?pd2candidates[0]:-1;
+  const serialToDay=v=>{if(typeof v==="number"&&isFinite(v)&&v>20000&&v<80000) return Math.round(v)-25569; return null;};
+  const num=v=>(typeof v==="number"&&isFinite(v))?v:null;
+  const records=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const tplRaw=C.tpl>=0?r[C.tpl]:null, tnRaw=r[C.tn];
+    if(!tplRaw||!tnRaw) continue;
+    const tpl=String(tplRaw).trim(), tn=String(tnRaw).trim();
+    if(!tpl||norm(tpl)==="grand total") continue;
+    records.push({
+      tn, tpl, seller:"",
+      mp:num(C.mp>=0?r[C.mp]:null), retail:num(C.retail>=0?r[C.retail]:null),
+      grand:num(C.grand>=0?r[C.grand]:null), coll:null, varc:null,
+      comment:"Not Collected", cd:null,
+      dd:serialToDay(C.dd>=0?r[C.dd]:null),
+      pd:serialToDay(C.pd>=0?r[C.pd]:null),
+      pd2raw:serialToDay(C.pd2>=0?r[C.pd2]:null)
+    });
+  }
+  return records;
+}
+
+function parseCollections(wb,XL){
+  const norm=v=>String(v==null?"":v).toLowerCase().replace(/[_\s]+/g," ").trim();
+  const keys=Object.keys(wb.Sheets);
+  const rows=XL.utils.sheet_to_json(wb.Sheets[keys[0]],{header:1,raw:true,defval:null});
+  let hIdx=-1;
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    if((rows[i]||[]).some(c=>norm(c).includes("tracking"))){hIdx=i;break;}
+  }
+  if(hIdx<0) throw new Error("Collections: no header row found");
+  const hdr=(rows[hIdx]||[]).map(norm);
+  const col=(...names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+  const tnIdx=col("tracking number","tracking");
+  const cdIdx=col("collection date","collection","payment date");
+  const tplIdx=col("3pl","logistics","third party");
+  const serialToDay=v=>{if(typeof v==="number"&&isFinite(v)&&v>20000&&v<80000) return Math.round(v)-25569; return null;};
+  const map={};
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const tn=r[tnIdx]; if(tn==null) continue;
+    const cd=serialToDay(cdIdx>=0?r[cdIdx]:null);
+    const tpl=tplIdx>=0&&r[tplIdx]?String(r[tplIdx]).trim():"";
+    if(cd!=null) map[String(tn).trim()]={cd,tpl};
+  }
+  return map;
+}
+
+function parseExpected(wb,XL){
+  const norm=v=>String(v==null?"":v).toLowerCase().replace(/[_\s]+/g," ").trim();
+  const keys=Object.keys(wb.Sheets);
+  const rows=XL.utils.sheet_to_json(wb.Sheets[keys[0]],{header:1,raw:true,defval:null});
+  let hIdx=-1;
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    if((rows[i]||[]).some(c=>norm(c).includes("tracking"))){hIdx=i;break;}
+  }
+  if(hIdx<0) throw new Error("Sellers: no header row found");
+  const hdr=(rows[hIdx]||[]).map(norm);
+  const col=(...names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+  const tnIdx=col("tracking number","tracking");
+  const sellerIdx=col("source vendor","vendor","seller");
+  const map={};
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const tn=r[tnIdx]; if(tn==null) continue;
+    const seller=sellerIdx>=0&&r[sellerIdx]?String(r[sellerIdx]).trim():"Unknown";
+    if(norm(seller)!=="grand total") map[String(tn).trim()]=seller;
+  }
+  return map;
+}
+
+function mergeThreeFiles(journal,collections,expected){
+  let matched=0, unmatched=0;
+  for(const rec of journal){
+    const c=collections[rec.tn];
+    if(c){
+      rec.comment="Collected";
+      rec.cd=c.cd;
+      rec.coll=rec.grand;   // collection amount = grand total when collected
+      matched++;
+    } else {
+      rec.comment="Not Collected";
+      unmatched++;
+    }
+    const seller=expected[rec.tn];
+    if(seller) rec.seller=seller;
+  }
+  return {records:journal, matched, unmatched, sellers:Object.keys(expected).length};
+}
+
+/* Override importFiles to handle multi-file workflow */
+async function importFiles(files){
+  const fileArr=[...files];
+  if(fileArr.length===1){
+    // single file: could be legacy or one of the 3 types
+    await importOneFile(fileArr[0]);
+    return;
+  }
+  // multi-file: detect types, merge, import
+  showOverlay("Importing "+fileArr.length+" files","Detecting file types…",5);
+  const parsed={journal:null,collections:null,expected:null,legacy:null};
+  const names={};
+  for(let fi=0;fi<fileArr.length;fi++){
+    const f=fileArr[fi];
+    setOverlay(`Reading ${f.name}…`,10+fi*25);
+    const buf=await readFileAsArrayBuffer(f);
+    let wb;
+    try{wb=XLSX.read(buf,{type:'array',dense:true,cellDates:false});}
+    catch(_){wb=XLSX.read(buf,{type:'array',dense:true,cellDates:false});}
+    const type=detectFileType(wb,XLSX);
+    names[type]=f.name;
+    if(type==="journal") parsed.journal=parseJournal(wb,XLSX);
+    else if(type==="collections") parsed.collections=parseCollections(wb,XLSX);
+    else if(type==="expected") parsed.expected=parseExpected(wb,XLSX);
+    else if(type==="legacy"){
+      // old format — process normally
+      setOverlay("Legacy format detected…",60);
+      const out=parseWorkbook(wb,XLSX);
+      await finishImport(out.records,out.info,f.name);
+      return;
+    }
+  }
+  if(!parsed.journal){hideOverlay();alert("Could not detect a Journal file. Make sure one file contains: third_party_logistics_partner, tracking_number, Delivery Date, Payment Date, Grand Total.");return;}
+  setOverlay("Merging files…",75);
+  const result=mergeThreeFiles(parsed.journal, parsed.collections||{}, parsed.expected||{});
+  const info={
+    sheet:"Journal"+(parsed.collections?" + Collections":"")+(parsed.expected?" + Expected":""),
+    sellerSheet:parsed.expected?names.expected||"Expected":"(none)",
+    skipped:0, noSeller:result.records.filter(r=>!r.seller||r.seller==="Unknown").length,
+    matched:result.matched, unmatched:result.unmatched
+  };
+  const allNames=fileArr.map(f=>f.name).join(" + ");
+  await finishImport(result.records,info,allNames);
+}
+
+async function finishImport(records,info,fileName){
+  setOverlay("Saving to database…",80);
+  await DB.upsertOrders(records,p=>setOverlay(`Saving… ${fmtInt(Math.round(p*records.length))} / ${fmtInt(records.length)}`,80+p*18));
+  const months=[...new Set(records.filter(r=>r.dd!=null).map(r=>monthKey(r.dd)))].sort();
+  await DB.addImport({name:fileName,at:Date.now(),rows:records.length,
+    months:months.map(monthLabel).join(", "),info});
+  setOverlay("Recalculating…",99);
+  await loadData();
+  hideOverlay();
+}
+
+function readFileAsArrayBuffer(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>res(fr.result);
+    fr.onerror=()=>rej(new Error("Failed to read "+file.name));
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+/* Override importOneFile for single files */
+function importOneFile(file){
+  return new Promise(async resolve=>{
+    showOverlay("Importing "+file.name,"Reading file…",5);
+    try{
+      const buf=await readFileAsArrayBuffer(file);
+      setOverlay("Parsing…",30);
+      let wb;
+      try{wb=XLSX.read(buf,{type:'array',dense:true,cellDates:false});}
+      catch(_){wb=XLSX.read(buf,{type:'array',dense:true,cellDates:false});}
+      const type=detectFileType(wb,XLSX);
+      if(type==="legacy"){
+        const out=parseWorkbook(wb,XLSX);
+        await finishImport(out.records,out.info,file.name);
+      } else if(type==="journal"){
+        const recs=parseJournal(wb,XLSX);
+        // no collections/expected — all orders are Not Collected, no sellers
+        await finishImport(recs,{sheet:"Journal (no collections file)",sellerSheet:"(none)",skipped:0,noSeller:recs.length},file.name);
+      } else {
+        hideOverlay();
+        alert(`This file was detected as "${type}". To import, please select all 3 files together (Journal + Collections + Sellers) or use the legacy single-file format.`);
+      }
+    }catch(err){hideOverlay();alert("Import failed: "+err.message);}
+    resolve();
+  });
+}
+
+/* ---------- Returns Management ---------- */
+function renderReturns(){
+  const retArr=[...State.returnSet].sort();
+  const retOrders=State.orders.filter(r=>State.returnSet.has(r.tn));
+  const retAmt=sum(retOrders.map(r=>r.grand||0));
+  $("#pane-returns").innerHTML=`
+    <h2 class="sec">Returns Management</h2>
+    <div class="sec-note">Mark tracking numbers as returned. Returned orders are excluded from collection calculations, reconciliation, KPIs, overdue analysis, and payment-term calculations across all tabs. Changes take effect immediately.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--dim);margin-bottom:6px">ENTER TRACKING NUMBERS (one per line or comma-separated)</div>
+        <textarea class="ret-input" id="retInput" placeholder="e.g.\n70869811\n10023416\n11279833"></textarea>
+        <div style="margin:8px 0;display:flex;gap:8px">
+          <button class="btn primary" id="btnAddReturns">+ Mark as Return</button>
+          <button class="btn" id="btnPasteReturns">📋 Paste from clipboard</button>
+        </div>
+      </div>
+      <div>
+        <div class="kpis" style="margin-bottom:12px">
+          <div class="kpi"><div class="l">Returned orders</div><div class="v">${fmtInt(retArr.length)}</div></div>
+          <div class="kpi"><div class="l">Return amount</div><div class="v">${fmtEGP(retAmt)}</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--dim);margin-bottom:6px">CURRENT RETURNS (${fmtInt(retArr.length)})</div>
+        <div class="ret-list twrap" style="max-height:280px;overflow-y:auto">
+          ${retArr.length?retArr.map(tn=>{
+            const o=State.orders.find(r=>r.tn===tn);
+            return `<div class="ret-item"><span>${esc(tn)}${o?` <span class="dim" style="font-family:var(--sans)">${esc(o.tpl)} · ${fmtEGP(o.grand)}</span>`:""}</span><span class="x" data-tn="${esc(tn)}">✕</span></div>`;
+          }).join(""):'<div style="padding:16px;color:var(--dim);text-align:center">No returns marked</div>'}
+        </div>
+        ${retArr.length?`<div style="margin:8px 0"><button class="btn danger" id="btnClearReturns">✕ Clear all returns</button></div>`:""}
+      </div>
+    </div>`;
+  $("#btnAddReturns").addEventListener("click",async()=>{
+    const raw=$("#retInput").value;
+    const tns=[...new Set(raw.split(/[,\n\r\t;]+/).map(s=>s.trim()).filter(Boolean))];
+    if(!tns.length){alert("Enter at least one tracking number.");return;}
+    const inDB=tns.filter(tn=>State.orders.some(r=>r.tn===tn));
+    const notInDB=tns.filter(tn=>!inDB.includes(tn));
+    if(notInDB.length&&!confirm(`${notInDB.length} tracking number(s) not found in the database and will be ignored:\n${notInDB.slice(0,5).join(", ")}${notInDB.length>5?"…":""}\n\nMark the ${inDB.length} found as returns?`)) return;
+    if(!inDB.length){alert("No matching tracking numbers found in the database.");return;}
+    await DB.addReturns(inDB);
+    for(const tn of inDB) State.returnSet.add(tn);
+    $("#retInput").value="";
+    renderReturns();
+  });
+  $("#btnPasteReturns").addEventListener("click",async()=>{
+    try{const t=await navigator.clipboard.readText();$("#retInput").value+=t;}catch(_){alert("Clipboard access denied. Paste manually with Ctrl+V.");}
+  });
+  const cl=$("#btnClearReturns");
+  if(cl) cl.addEventListener("click",async()=>{
+    if(!confirm(`Remove all ${retArr.length} return marks? Orders will revert to Collected/Not Collected status.`))return;
+    await DB.clearReturns();
+    State.returnSet.clear();
+    renderReturns();
+  });
+  $("#pane-returns").querySelectorAll(".x[data-tn]").forEach(el=>{
+    el.addEventListener("click",async()=>{
+      const tn=el.dataset.tn;
+      await DB.removeReturn(tn);
+      State.returnSet.delete(tn);
+      renderReturns();
+    });
+  });
+}
+</script>
+
+
+
+
+
+<script>
+/* Export/Import Database — compact JSON file for sharing */
+$("#btnExportDB").addEventListener("click",async()=>{
+  if(!State.orders.length){alert("No data to export. Import data first.");return;}
+  showOverlay("Exporting data","Reading database…",10);
+  try{
+    setOverlay("Fetching…",30);
+    const _r=await fetch("/api/export");const payload=await _r.json();
+    setOverlay("Generating file…",70);
+    const json=JSON.stringify(payload);
+    const blob=new Blob([json],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    const scope=State.scope==="all"?"AllData":monthLabel(+State.scope).replace(" ","_");
+    a.href=url; a.download=`Kenzz_COD_Data_${scope}_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setOverlay("Done! File saved.",100);
+    setTimeout(hideOverlay,800);
+  }catch(err){hideOverlay();alert("Export failed: "+err.message);}
+});
+
+$("#btnImportDB").addEventListener("click",()=>$("#dbFileInput").click());
+$("#dbFileInput").addEventListener("change",async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  e.target.value="";
+  showOverlay("Importing data","Reading file…",5);
+  try{
+    const text=await file.text();
+    setOverlay("Parsing…",20);
+    const payload=JSON.parse(text);
+    let records;
+    if(payload.v===2 && payload.keys && payload.data){
+      // columnar format
+      const keys=payload.keys;
+      records=payload.data.map(row=>{
+        const o={};
+        for(let i=0;i<keys.length;i++) o[keys[i]]=row[i];
+        return o;
+      });
+    } else if(payload.orders){
+      // legacy format (v1 or embedded)
+      records=payload.orders;
+    } else {
+      throw new Error("Unrecognized data file format.");
+    }
+    setOverlay(`Saving ${records.length.toLocaleString()} orders…`,30);
+    await DB.upsertOrders(records,p=>setOverlay(`Saving… ${Math.round(p*100)}%`,30+p*50));
+    if(payload.imports){
+      setOverlay("Importing history…",82);
+      for(const imp of payload.imports) await DB.addImport(imp);
+    }
+    if(payload.returns && payload.returns.length){
+      setOverlay("Importing returns…",88);
+      await DB.addReturns(payload.returns);
+    }
+    if(payload.terms){
+      await DB.putSetting("terms",payload.terms);
+    }
+    setOverlay("Recalculating…",95);
+    await loadData();
+    hideOverlay();
+    alert(`Imported ${records.length.toLocaleString()} orders successfully.`);
+  }catch(err){hideOverlay();alert("Import failed: "+err.message);}
+});
+</script>
+
+</body>
+</html>
