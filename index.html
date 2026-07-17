@@ -1263,11 +1263,17 @@ function collectionAnalysis(mk){
   // Cash gap: delivered amount vs actually received in the same month
   const cashGap=delAmt-totalCollAmt;
 
+  // Collected but no collection date (e.g. Flextock) — delivered in this month
+  const noDate=delivered.filter(r=>r.comment==="Collected"&&r.cd==null);
+  const noDateN=noDate.length;
+  const noDateAmt=sum(noDate.map(r=>r.coll||0));
+
   return {mk,delN,delAmt,
     collSameN,collSameAmt,collSameGrand,
     collFromDelN,collFromDelAmt,ncFromDelN,ncFromDelAmt,
     totalCollN,totalCollAmt,totalCollGrand,
     fromPrevN,fromPrevAmt,
+    noDateN,noDateAmt,
     fromSameN:collSameN,fromSameAmt:collSameAmt,
     sameMonthRate:delAmt?collSameGrand/delAmt:null,
     eventualRate:delAmt?collFromDelAmt/delAmt:null,
@@ -1291,6 +1297,7 @@ function renderCollectionAnalysis(months){
         <div class="kpi"><div class="l">Total collections received in ${lbl}</div><div class="v" style="color:var(--violet)">${fmtInt(s.totalCollN)} orders</div><div class="s">${fmtEGP(s.totalCollAmt)}</div></div>
         <div class="kpi"><div class="l">↳ From previous months' deliveries</div><div class="v">${fmtInt(s.fromPrevN)} orders</div><div class="s">${fmtEGP(s.fromPrevAmt)}</div></div>
         <div class="kpi"><div class="l">Cash gap (delivered − received)</div><div class="v ${s.cashGap>0?"bad":"good"}">${fmtEGP(s.cashGap)}</div></div>
+        ${s.noDateN?`<div class="kpi"><div class="l">Collected (no date available)</div><div class="v dim">${fmtInt(s.noDateN)} orders</div><div class="s">${fmtEGP(s.noDateAmt)} · Not included in "Total Received" (no collection date)</div></div>`:""}
       </div>
     </details>`;
   }).join("");
@@ -1303,11 +1310,13 @@ function renderCollectionAnalysis(months){
     <td class="${rateCls(s.sameMonthRate)}">${fmtPct(s.sameMonthRate)}</td>
     <td style="color:var(--violet)">${fmtInt(s.totalCollN)}</td><td style="color:var(--violet)">${fmtEGP(s.totalCollAmt)}</td>
     <td>${fmtInt(s.fromPrevN)}</td><td>${fmtEGP(s.fromPrevAmt)}</td>
+    <td class="dim">${fmtInt(s.noDateN)}</td><td class="dim">${fmtEGP(s.noDateAmt)}</td>
     <td class="${s.cashGap>0?"bad":"good"}">${fmtEGP(s.cashGap)}</td></tr>`;
   const tot={delN:agg("delN"),delAmt:agg("delAmt"),
     collSameN:agg("collSameN"),collSameAmt:agg("collSameAmt"),
     totalCollN:agg("totalCollN"),totalCollAmt:agg("totalCollAmt"),
     fromPrevN:agg("fromPrevN"),fromPrevAmt:agg("fromPrevAmt"),
+    noDateN:agg("noDateN"),noDateAmt:agg("noDateAmt"),
     cashGap:agg("cashGap")};
   tot.sameMonthRate=tot.delAmt?sum(stats.map(s=>s.collSameGrand||0))/tot.delAmt:null;
   const summBody=stats.map(s=>tRow(s,monthLabel(s.mk))).join("")+tRow(tot,"TOTAL",true);
@@ -1315,11 +1324,13 @@ function renderCollectionAnalysis(months){
   const html=`<h2 class="sec" style="margin-top:30px">Monthly Collection Analysis</h2>
     <div class="sec-note">Three perspectives per month: <b>(1)</b> What was delivered, <b>(2)</b> How much of that month's deliveries was collected,
     <b>(3)</b> How much cash was actually received during the month (from any delivery month).<br>
-    Example for February: "Total collections received" includes orders delivered in December but collected in February.</div>`+
+    Example for February: "Total collections received" includes orders delivered in December but collected in February.
+    <br>"Collected (no date)" = orders marked as Collected but with no collection date (e.g. Flextock) — not included in "Total Received" since the month cannot be determined.</div>`+
     T(["Month","Delivered","Delivered (EGP)",
       "Collected from Same Month","Same Month (EGP)","Same-Month Rate %",
       "Total Received in Month","Total Received (EGP)",
       "↳ From Previous Months","↳ Prev Months (EGP)",
+      "Collected (No Date)","No Date (EGP)",
       "Cash Gap (EGP)"],summBody)+
     `<div class="chartrow">
        <div class="chartbox"><h3>Delivered vs Total Received (EGP)</h3><canvas id="chCollAnalysis" height="230"></canvas></div>
@@ -1333,11 +1344,11 @@ function renderCollectionAnalysis(months){
 
   // Register for export
   reg("Collection Analysis",[["Month","Delivered","Delivered EGP","Collected Same Month","Same Month EGP","Same-Month Rate",
-    "Total Received","Total Received EGP","From Prev Months","Prev Months EGP","Cash Gap"],
+    "Total Received","Total Received EGP","From Prev Months","Prev Months EGP","Collected No Date","No Date EGP","Cash Gap"],
     ...stats.map(s=>[monthLabel(s.mk),s.delN,s.delAmt,s.collSameN,s.collSameAmt,s.sameMonthRate,
-      s.totalCollN,s.totalCollAmt,s.fromPrevN,s.fromPrevAmt,s.cashGap]),
+      s.totalCollN,s.totalCollAmt,s.fromPrevN,s.fromPrevAmt,s.noDateN,s.noDateAmt,s.cashGap]),
     ["TOTAL",tot.delN,tot.delAmt,tot.collSameN,tot.collSameAmt,tot.sameMonthRate,
-      tot.totalCollN,tot.totalCollAmt,tot.fromPrevN,tot.fromPrevAmt,tot.cashGap]]);
+      tot.totalCollN,tot.totalCollAmt,tot.fromPrevN,tot.fromPrevAmt,tot.noDateN,tot.noDateAmt,tot.cashGap]]);
 
   // Charts
   chart("chCollAnalysis",{type:"bar",data:{labels:stats.map(s=>monthLabel(s.mk)),datasets:[
