@@ -1186,7 +1186,7 @@ function renderMonthly(){
   if(sel.length) drawCompare(sel);
 
   /* --- NEW: Monthly Collection Analysis --- */
-  renderCollectionAnalysis(months);
+  renderCollectionAnalysis(State.scope==="all"?months:months.filter(m=>m===+State.scope));
 }
 
 function drawCohortRate(stats){
