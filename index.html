@@ -418,7 +418,28 @@ const DB=(()=>{
     await supaClient.from("returns").delete().neq("tn","__never__");
   }
 
-  return {open,upsertOrders,getAll,addImport,clearAll,getSetting,putSetting,addReturns,removeReturn,clearReturns,loadRole};
+  async function deleteByMonth(mk){
+    const ms=monthStartDay(mk), me=monthEndDay(mk);
+    // Get all orders, find TNs for this month, delete in batches
+    let from=0;const PAGE=1000;let deleted=0;
+    while(true){
+      const {data,error}=await supaClient.from("orders").select("tn,dd").range(from,from+PAGE-1);
+      if(error) throw new Error(error.message);
+      const tns=data.filter(r=>r.dd!=null&&r.dd>=ms&&r.dd<=me).map(r=>r.tn);
+      if(tns.length){
+        for(let i=0;i<tns.length;i+=500){
+          const batch=tns.slice(i,i+500);
+          await supaClient.from("orders").delete().in("tn",batch);
+        }
+        deleted+=tns.length;
+      }
+      if(data.length<PAGE) break;
+      from+=PAGE;
+    }
+    return deleted;
+  }
+
+  return {open,upsertOrders,getAll,addImport,clearAll,deleteByMonth,getSetting,putSetting,addReturns,removeReturn,clearReturns,loadRole};
 })();
 
 /* Auth UI */
@@ -1794,7 +1815,20 @@ function renderData(){
     </div>
     <h2 class="sec">Import history</h2>
     ${State.imports.length?T(["File","Imported at","Rows","Months in file","Details"],imps):'<div class="sec-note">Nothing imported yet.</div>'}
-    <div style="margin-top:22px"><button class="btn danger admin-only" id="btnClear">✕ Clear all stored data</button></div>`;
+    <div style="margin-top:22px"><button class="btn danger admin-only" id="btnClear">✕ Clear all stored data</button></div>
+
+    <div class="admin-only" style="margin-top:24px">
+    <h2 class="sec">Manage by Month</h2>
+    <div class="sec-note">Delete a specific month's data, or replace it by uploading a new file after deletion.</div>
+    <div style="display:grid;grid-template-columns:auto auto auto 1fr;gap:8px;align-items:center;margin:10px 0;max-width:700px">
+      <select id="selMonthManage" style="font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-family:var(--mono)">
+        ${State.months.map(m=>'<option value="'+m+'">'+monthLabel(m)+'</option>').join("")}
+      </select>
+      <button class="btn danger" id="btnDeleteMonth">🗑 Delete month</button>
+      <button class="btn primary" id="btnReplaceMonth">↻ Replace month (delete + re-import)</button>
+      <span id="monthManageStatus" style="font-size:12px;color:var(--dim)"></span>
+    </div>
+    </div>`;
   const dz=$("#dropzone");
   dz.addEventListener("click",()=>$("#fileInput").click());
   dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag")});
@@ -1803,6 +1837,43 @@ function renderData(){
   $("#btnClear").addEventListener("click",async()=>{
     if(!confirm("Delete ALL stored orders and import history from this browser? This cannot be undone."))return;
     await DB.clearAll(); await loadData();
+  });
+
+  // Delete month handler
+  $("#btnDeleteMonth")?.addEventListener("click",async()=>{
+    const mk=+$("#selMonthManage").value;
+    const lbl=monthLabel(mk);
+    if(!confirm("Delete ALL orders delivered in "+lbl+"?\nThis cannot be undone."))return;
+    const status=$("#monthManageStatus");
+    status.textContent="Deleting "+lbl+"…";
+    try{
+      const n=await DB.deleteByMonth(mk);
+      status.textContent="Deleted "+n+" orders from "+lbl+". Reloading…";
+      status.style.color="var(--green)";
+      await loadData();
+      status.textContent="Done — "+n+" orders deleted from "+lbl+".";
+    }catch(e){
+      status.textContent="Error: "+e.message;
+      status.style.color="var(--red)";
+    }
+  });
+
+  // Replace month handler (delete then prompt for file)
+  $("#btnReplaceMonth")?.addEventListener("click",async()=>{
+    const mk=+$("#selMonthManage").value;
+    const lbl=monthLabel(mk);
+    if(!confirm("This will DELETE all orders delivered in "+lbl+" and then let you upload a new file to replace them.\n\nContinue?"))return;
+    const status=$("#monthManageStatus");
+    status.textContent="Deleting "+lbl+"…";
+    try{
+      const n=await DB.deleteByMonth(mk);
+      status.textContent="Deleted "+n+" orders. Now drop or select your replacement file above.";
+      status.style.color="var(--violet)";
+      await loadData();
+    }catch(e){
+      status.textContent="Error: "+e.message;
+      status.style.color="var(--red)";
+    }
   });
 }
 
