@@ -894,10 +894,11 @@ function tplStats(rows,b){
     const yes=set.filter(r=>F(r,b)==="YES"), late=set.filter(r=>r.late==="YES");
     const net=sum(set.map(r=>r.grand||0)), colAmt=sum(col.map(r=>r.coll||0));
     const ncD=nc.map(r=>r.d2c).filter(v=>v!=null);
+    const ncDAll=nc.filter(r=>r.dd!=null).map(r=>State.view.snap-r.dd);
     return {n:set.length,nCol:col.length,nNC:nc.length,nRet:set.filter(r=>r.comment==="Return").length,
       net,colAmt,unc:net-colAmt,rate:net?colAmt/net:null,
       avgD2C:mean(col.map(r=>r.d2c).filter(v=>v!=null)),
-      avgD2NC:mean(ncD),maxNC:ncD.length?Math.max(...ncD):null,
+      avgD2NC:mean(ncD),avgD2NC_all:mean(ncDAll),maxNC:ncD.length?Math.max(...ncD):null,
       avgC2P:mean(col.map(r=>C2P(r,b)).filter(v=>v!=null)),
       avgCyc:mean(set.map(r=>CYC(r,b)).filter(v=>v!=null)),
       yesN:yes.length,yesAmt:sum(yes.map(r=>r.grand||0)),
@@ -912,7 +913,7 @@ function render3PL(){
     <td>${esc(name)}</td><td>${fmtInt(s.n)}</td><td>${fmtInt(s.nCol)}</td><td>${fmtInt(s.nNC)}</td>
     <td>${fmtEGP(s.net)}</td><td>${fmtEGP(s.colAmt)}</td><td>${fmtEGP(s.unc)}</td>
     <td class="${rateCls(s.rate)}">${fmtPct(s.rate)}</td>
-    <td>${fmtDays(s.avgD2C)}</td><td>${fmtDays(s.avgD2NC)}</td><td>${s.maxNC==null?"—":fmtInt(s.maxNC)}</td>
+    <td>${fmtDays(s.avgD2C)}</td><td>${fmtDays(s.avgD2NC)}</td><td>${fmtDays(s.avgD2NC_all)}</td><td>${s.maxNC==null?"—":fmtInt(s.maxNC)}</td>
     <td>${fmtDays(s.avgC2P)}</td><td class="${s.avgCyc<0?"bad":"good"}">${fmtDays(s.avgCyc)}</td></tr>`;
   const main=S.tpls.map(t=>row(t,S.per[t])).join("")+row("TOTAL",S.tot,true);
   const riskRow=(name,s,total)=>`<tr${total?' class="total"':""}>
@@ -922,13 +923,13 @@ function render3PL(){
   const risk=S.tpls.map(t=>riskRow(t,S.per[t])).join("")+riskRow("TOTAL",S.tot,true);
   $("#pane-tpl").innerHTML=
     `<h2 class="sec">3PL Summary — PMT ${b}</h2><div class="sec-note">Collected Amount sums the Collection (EGP) column, as in the reference</div>`+
-    T(["3PL Partner","Orders","Collected","Not Collected","Net Sales (EGP)","Collected Amount (EGP)","Uncollected (EGP)","Collection Rate %","Avg Del→Coll (d)","Avg Del→Not Coll (d)","Max Days Not Coll","Avg Coll→Pay (d)","Avg Total Cycle (d)"],main)+
+    T(["3PL Partner","Orders","Collected","Not Collected","Net Sales (EGP)","Collected Amount (EGP)","Uncollected (EGP)","Collection Rate %","Avg Del→Coll (d)","Avg Del→Not Coll (d)","Avg Days NC (All)","Max Days Not Coll","Avg Coll→Pay (d)","Avg Total Cycle (d)"],main)+
     `<h2 class="sec">Risk by 3PL — PMT ${b}</h2>`+
     T(["3PL Partner","Orders Collected After Paid","Amount After Paid (EGP)","% of Total Risk","Orders Late (>7d)","Amount Late (EGP)"],risk)+
     `<div class="chartrow"><div class="chartbox wide"><h3>Collected vs uncollected by 3PL · collection rate</h3><canvas id="ch3pl" height="110"></canvas></div></div>`;
-  reg("3PL Summary",[["3PL","Orders","Collected","Not Collected","Net Sales","Collected Amount","Uncollected","Rate","Avg Del→Coll","Avg Del→NotColl","Max NC days","Avg Coll→Pay","Avg Cycle"],
-    ...S.tpls.map(t=>{const s=S.per[t];return [t,s.n,s.nCol,s.nNC,s.net,s.colAmt,s.unc,s.rate,s.avgD2C,s.avgD2NC,s.maxNC,s.avgC2P,s.avgCyc];}),
-    ["TOTAL",S.tot.n,S.tot.nCol,S.tot.nNC,S.tot.net,S.tot.colAmt,S.tot.unc,S.tot.rate,S.tot.avgD2C,S.tot.avgD2NC,S.tot.maxNC,S.tot.avgC2P,S.tot.avgCyc]]);
+  reg("3PL Summary",[["3PL","Orders","Collected","Not Collected","Net Sales","Collected Amount","Uncollected","Rate","Avg Del→Coll","Avg Del→NotColl","Avg Days NC All","Max NC days","Avg Coll→Pay","Avg Cycle"],
+    ...S.tpls.map(t=>{const s=S.per[t];return [t,s.n,s.nCol,s.nNC,s.net,s.colAmt,s.unc,s.rate,s.avgD2C,s.avgD2NC,s.avgD2NC_all,s.maxNC,s.avgC2P,s.avgCyc];}),
+    ["TOTAL",S.tot.n,S.tot.nCol,S.tot.nNC,S.tot.net,S.tot.colAmt,S.tot.unc,S.tot.rate,S.tot.avgD2C,S.tot.avgD2NC,S.tot.avgD2NC_all,S.tot.maxNC,S.tot.avgC2P,S.tot.avgCyc]]);
   reg("Risk by 3PL",[["3PL","Orders After Paid","Amount After Paid","% of Risk","Orders Late","Amount Late"],
     ...S.tpls.map(t=>{const s=S.per[t];return [t,s.yesN,s.yesAmt,S.tot.yesAmt?s.yesAmt/S.tot.yesAmt:"",s.lateN,s.lateAmt];})]);
   draw3PL(S);
