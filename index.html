@@ -208,6 +208,10 @@ footer{padding:14px 24px;color:var(--faint);font-size:11.5px;border-top:1px soli
   <div class="ctl"><label>Period</label><select id="selMonth"></select></div>
   <div class="ctl"><label>3PL Partner</label><select id="sel3pl"></select></div>
   <div class="ctl"><label>Channel</label><select id="selChannel"><option value="">All channels</option><option>MP</option><option>Retail</option></select></div>
+  <div class="ctl"><label>Status</label><select id="selStatus"><option value="">All statuses</option><option value="Collected">Collected</option><option value="Not Collected">Not Collected</option><option value="Return">Return</option></select></div>
+  <div class="ctl"><label>Seller</label><select id="selSeller"><option value="">All sellers</option></select></div>
+  <div class="ctl"><label>Week</label><select id="selWeek"><option value="">All weeks</option></select></div>
+  <div class="ctl"><label>Paid before coll.</label><select id="selPBC"><option value="">All</option><option value="YES">Yes</option><option value="NO">No</option></select></div>
   <div class="ctl"><label>Payment basis</label>
     <div class="seg" id="segBasis">
       <button data-b="1" class="on">PMT 1</button>
@@ -654,8 +658,8 @@ function hideOverlay(){$("#overlay").classList.remove("on")}
    - Channel        : MP if MP Stock ≥ Retail (or only MP present)        */
 
 const State={
-  orders:[], imports:[], months:[], tpls:[],
-  scope:"all", tpl:"", channel:"", basis:1, tab:"exec",
+  orders:[], imports:[], months:[], tpls:[], sellers:[],
+  scope:"all", tpl:"", channel:"", status:"", seller:"", week:"", pbc:"", basis:1, tab:"exec",
   sellerSearch:"", sellerSort:{key:"net",dir:-1}, compareMonths:[], deepTpl:"", terms:{}, returnSet:new Set(),
   charts:{}, exportTables:[]
 };
@@ -722,6 +726,16 @@ function applyGlobalFilters(rows){
   let f=rows;
   if(State.tpl) f=f.filter(r=>r.tpl===State.tpl);
   if(State.channel) f=f.filter(r=>r.ch===State.channel);
+  if(State.status) f=f.filter(r=>r.comment===State.status);
+  if(State.seller) f=f.filter(r=>(r.seller||"")=== State.seller);
+  if(State.week) {
+    const wk=+State.week;
+    f=f.filter(r=>r.dd!=null&&weekNumOf(r.dd)===wk);
+  }
+  if(State.pbc) {
+    const b=State.basis;
+    f=f.filter(r=>b===1?(r.f1===State.pbc):(r.f2===State.pbc));
+  }
   return f;
 }
 function deriveRows(rows,snap){
@@ -1940,6 +1954,10 @@ function exportFilteredData(){
   parts.push(scope);
   if(State.tpl) parts.push(State.tpl.replace(/\s/g,"_"));
   if(State.channel) parts.push(State.channel);
+  if(State.status) parts.push(State.status.replace(/\s/g,"_"));
+  if(State.seller) parts.push(State.seller.replace(/\s/g,"_"));
+  if(State.week) parts.push("Week"+State.week);
+  if(State.pbc) parts.push("PBC_"+State.pbc);
 
   // Header row
   const headers=["Tracking Number","3PL","Seller","Channel",
@@ -1987,6 +2005,10 @@ function exportFilteredData(){
     ["Period",scope.replace(/_/g," ")],
     ["3PL",State.tpl||"All"],
     ["Channel",State.channel||"All"],
+    ["Status",State.status||"All"],
+    ["Seller",State.seller||"All"],
+    ["Week",State.week?"Week "+State.week:"All"],
+    ["Paid Before Collected",State.pbc||"All"],
     ["Total Orders",rows.length],
     ["Total Grand Amount",sum(rows.map(r=>r.grand||0))],
     ["Total Collection Amount",sum(rows.filter(r=>r.comment==="Collected").map(r=>r.coll||0))],
@@ -2014,11 +2036,31 @@ async function loadData(){
   else if(State.months.length&&cur==="all"&&!State._touched){State.scope=String(State.months[State.months.length-1]);selM.value=State.scope;}
   const sel3=$("#sel3pl");
   sel3.innerHTML=`<option value="">All 3PLs</option>`+State.tpls.map(t=>`<option${State.tpl===t?" selected":""}>${esc(t)}</option>`).join("");
+
+  // Populate Seller dropdown
+  State.sellers=[...new Set(State.orders.map(r=>r.seller||"").filter(s=>s&&s!=="Unknown"))].sort();
+  const selSeller=$("#selSeller");
+  selSeller.innerHTML=`<option value="">All sellers</option>`+State.sellers.map(s=>`<option${State.seller===s?" selected":""}>${esc(s)}</option>`).join("");
+
+  // Populate Week dropdown based on current scope
+  const weekOrders=State.scope==="all"?State.orders:State.orders.filter(r=>{const mk=+State.scope;return r.dd!=null&&r.dd>=monthStartDay(mk)&&r.dd<=monthEndDay(mk);});
+  const weeks=[...new Set(weekOrders.filter(r=>r.dd!=null).map(r=>weekNumOf(r.dd)))].sort((a,b)=>a-b);
+  const selWeek=$("#selWeek");
+  selWeek.innerHTML=`<option value="">All weeks</option>`+weeks.map(w=>`<option value="${w}"${State.week===String(w)?" selected":""}>Week ${w}</option>`).join("");
+
+  // Restore status and pbc
+  $("#selStatus").value=State.status;
+  $("#selPBC").value=State.pbc;
+
   renderAll();
 }
-$("#selMonth").addEventListener("change",e=>{State.scope=e.target.value;State._touched=true;renderAll();});
+$("#selMonth").addEventListener("change",e=>{State.scope=e.target.value;State._touched=true;State.week="";renderAll();});
 $("#sel3pl").addEventListener("change",e=>{State.tpl=e.target.value;renderAll();});
 $("#selChannel").addEventListener("change",e=>{State.channel=e.target.value;renderAll();});
+$("#selStatus").addEventListener("change",e=>{State.status=e.target.value;renderAll();});
+$("#selSeller").addEventListener("change",e=>{State.seller=e.target.value;renderAll();});
+$("#selWeek").addEventListener("change",e=>{State.week=e.target.value;renderAll();});
+$("#selPBC").addEventListener("change",e=>{State.pbc=e.target.value;renderAll();});
 $("#segBasis").addEventListener("click",e=>{
   const b=e.target.dataset.b;if(!b)return;
   State.basis=+b;$$("#segBasis button").forEach(x=>x.classList.toggle("on",x.dataset.b===b));renderAll();});
