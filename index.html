@@ -217,6 +217,7 @@ footer{padding:14px 24px;color:var(--faint);font-size:11.5px;border-top:1px soli
   <div class="spacer"></div>
   <button class="btn admin-only" id="btnRefresh" title="Reload stored data and recalculate everything">⟳ Refresh data</button>
   <button class="btn" id="btnExport" title="Export the tables of the current tab to Excel">⬇ Export tab</button>
+  <button class="btn" id="btnExportFiltered" title="Export all filtered orders with full details to Excel" style="border-color:var(--green);color:var(--green)">📊 Export filtered data</button>
   <button class="btn admin-only" id="btnExportDB" title="Export all stored data as a file" style="border-color:var(--violet);color:var(--violet)">📤 Export data</button>
   <button class="btn admin-only" id="btnImportDB" title="Import a previously exported data file">📥 Import data</button>
   <input type="file" id="dbFileInput" accept=".json" style="display:none">
@@ -1928,6 +1929,76 @@ function exportTab(){
   XLSX.writeFile(wb,`Kenzz_COD_${State.tab}_${scope}.xlsx`);
 }
 
+/* ---------- Export filtered data ---------- */
+function exportFilteredData(){
+  const rows=State.view.rows;
+  if(!rows||!rows.length){alert("No data to export with current filters.");return;}
+
+  // Build descriptive filename from active filters
+  const parts=["Kenzz_COD"];
+  const scope=State.scope==="all"?"AllData":monthLabel(+State.scope).replace(/\s/g,"_");
+  parts.push(scope);
+  if(State.tpl) parts.push(State.tpl.replace(/\s/g,"_"));
+  if(State.channel) parts.push(State.channel);
+
+  // Header row
+  const headers=["Tracking Number","3PL","Seller","Channel",
+    "MP Amount","Retail Amount","Grand Total",
+    "Collection Amount","Variance","Status",
+    "Delivery Date","Collection Date","Payment Date","Payment Date +7d",
+    "Days: Del→Coll","Days: Coll→Pay (PMT1)","Cash Cycle (PMT1)",
+    "Days: Coll→Pay (PMT2)","Cash Cycle (PMT2)",
+    "Paid Before Collected (PMT1)","Paid Before Collected (PMT2)",
+    "Late Collection (>7d)","Delivery Month"];
+
+  // Data rows
+  const data=rows.map(r=>{
+    const delDate=r.dd!=null?dayToDate(r.dd):null;
+    const colDate=r.cd!=null?dayToDate(r.cd):null;
+    const payDate=r.pd!=null?dayToDate(r.pd):null;
+    const pd2Date=r.pd2!=null?dayToDate(r.pd2):null;
+    const fmtD=d=>d?d.toISOString().slice(0,10):"";
+    return [
+      r.tn, r.tpl, r.seller||"", r.ch||"",
+      r.mp, r.retail, r.grand,
+      r.coll, r.varc, r.comment,
+      fmtD(delDate), fmtD(colDate), fmtD(payDate), fmtD(pd2Date),
+      r.d2c, r.c2p, r.cyc,
+      r.c2p2, r.cyc2,
+      r.f1||"", r.f2||"",
+      r.late||"",
+      r.dd!=null?monthLabel(monthKey(r.dd)):""
+    ];
+  });
+
+  const wb=XLSX.utils.book_new();
+
+  // Sheet 1: All filtered orders
+  const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
+  // Set column widths
+  ws["!cols"]=headers.map(h=>({wch:Math.max(h.length,12)}));
+  XLSX.utils.book_append_sheet(wb,ws,"Filtered Orders");
+
+  // Sheet 2: Summary
+  const statusCounts={};
+  rows.forEach(r=>{statusCounts[r.comment]=(statusCounts[r.comment]||0)+1;});
+  const summHeaders=["Filter","Value"];
+  const summData=[
+    ["Period",scope.replace(/_/g," ")],
+    ["3PL",State.tpl||"All"],
+    ["Channel",State.channel||"All"],
+    ["Total Orders",rows.length],
+    ["Total Grand Amount",sum(rows.map(r=>r.grand||0))],
+    ["Total Collection Amount",sum(rows.filter(r=>r.comment==="Collected").map(r=>r.coll||0))],
+    ...Object.entries(statusCounts).map(([k,v])=>["Status: "+k,v])
+  ];
+  const ws2=XLSX.utils.aoa_to_sheet([summHeaders,...summData]);
+  ws2["!cols"]=[{wch:25},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws2,"Summary");
+
+  XLSX.writeFile(wb,parts.join("_")+".xlsx");
+}
+
 /* ---------- Boot & wiring ---------- */
 async function loadData(){
   State.orders=await DB.getAll("orders");
@@ -1957,6 +2028,7 @@ $("#tabs").addEventListener("click",e=>{
   $$(".tabpane").forEach(p=>p.classList.toggle("on",p.id==="pane-"+t));renderAll();});
 $("#btnRefresh").addEventListener("click",()=>loadData());
 $("#btnExport").addEventListener("click",exportTab);
+$("#btnExportFiltered").addEventListener("click",exportFilteredData);
 $("#fileInput").addEventListener("change",e=>{if(e.target.files.length)importFiles([...e.target.files]);e.target.value="";});
 
 DB.open().then(loadData).catch(err=>alert("Could not open the local database: "+err));
