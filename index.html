@@ -2345,20 +2345,57 @@ function renderReturns(){
           }).join(""):'<div style="padding:16px;color:var(--dim);text-align:center">No returns marked</div>'}
         </div>
         ${retArr.length?`<div style="margin:8px 0"><button class="btn danger admin-only" id="btnClearReturns">✕ Clear all returns</button></div>`:""}
+        <div id="retFeedback" style="margin-top:8px"></div>
       </div>
     </div>`;
   $("#btnAddReturns").addEventListener("click",async()=>{
     const raw=$("#retInput").value;
     const tns=[...new Set(raw.split(/[,\n\r\t;]+/).map(s=>s.trim()).filter(Boolean))];
     if(!tns.length){alert("Enter at least one tracking number.");return;}
-    const inDB=tns.filter(tn=>State.orders.some(r=>r.tn===tn));
-    const notInDB=tns.filter(tn=>!inDB.includes(tn));
-    if(notInDB.length&&!confirm(`${notInDB.length} tracking number(s) not found in the database and will be ignored:\n${notInDB.slice(0,5).join(", ")}${notInDB.length>5?"…":""}\n\nMark the ${inDB.length} found as returns?`)) return;
-    if(!inDB.length){alert("No matching tracking numbers found in the database.");return;}
-    await DB.addReturns(inDB);
-    for(const tn of inDB) State.returnSet.add(tn);
+
+    // Categorize each TN
+    const alreadyReturn=[];
+    const alreadyReturnInData=[];
+    const newReturns=[];
+    const notFound=[];
+
+    for(const tn of tns){
+      const order=State.orders.find(r=>r.tn===tn);
+      if(!order){
+        notFound.push(tn);
+      } else if(State.returnSet.has(tn)){
+        alreadyReturn.push(tn);
+      } else if(order.comment==="Return"){
+        alreadyReturnInData.push(tn);
+      } else {
+        newReturns.push(tn);
+      }
+    }
+
+    // Show feedback
+    const fb=$("#retFeedback");
+    let fbHtml="";
+    if(newReturns.length){
+      await DB.addReturns(newReturns);
+      for(const tn of newReturns) State.returnSet.add(tn);
+      fbHtml+=`<div style="color:var(--green);font-size:12px;margin:4px 0">✓ ${newReturns.length} tracking number(s) marked as Return.</div>`;
+    }
+    if(alreadyReturn.length){
+      fbHtml+=`<div style="color:var(--amber);font-size:12px;margin:4px 0">⚠ Already Returned (${alreadyReturn.length}): ${alreadyReturn.slice(0,10).join(", ")}${alreadyReturn.length>10?" …":""} — no changes made.</div>`;
+    }
+    if(alreadyReturnInData.length){
+      fbHtml+=`<div style="color:var(--amber);font-size:12px;margin:4px 0">⚠ Already Returned in imported data (${alreadyReturnInData.length}): ${alreadyReturnInData.slice(0,10).join(", ")}${alreadyReturnInData.length>10?" …":""} — no changes made.</div>`;
+    }
+    if(notFound.length){
+      fbHtml+=`<div style="color:var(--red);font-size:12px;margin:4px 0">✕ Not found in database (${notFound.length}): ${notFound.slice(0,10).join(", ")}${notFound.length>10?" …":""} — ignored.</div>`;
+    }
+    if(!newReturns.length&&!alreadyReturn.length&&!alreadyReturnInData.length){
+      fbHtml=`<div style="color:var(--red);font-size:12px;margin:4px 0">No matching tracking numbers found in the database.</div>`;
+    }
+
+    fb.innerHTML=fbHtml;
     $("#retInput").value="";
-    renderReturns();
+    if(newReturns.length) renderReturns();
   });
   $("#btnPasteReturns").addEventListener("click",async()=>{
     try{const t=await navigator.clipboard.readText();$("#retInput").value+=t;}catch(_){alert("Clipboard access denied. Paste manually with Ctrl+V.");}
