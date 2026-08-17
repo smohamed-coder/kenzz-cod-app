@@ -840,11 +840,11 @@ function renderExec(){
   const kpiCards=`
   <div class="kpis">
     <div class="kpi"><div class="l">Total net sales</div><div class="v">${fmtEGP(k1.net)}</div><div class="s">${fmtInt(k1.n)} shipments</div></div>
-    <div class="kpi"><div class="l">Collected</div><div class="v" style="color:var(--green)">${fmtEGP(k1.colAmt)}</div><div class="s">${fmtPct(k1.net?k1.colAmt/k1.net:null)} of net</div></div>
-    <div class="kpi"><div class="l">Not collected</div><div class="v" style="color:var(--red)">${fmtEGP(k1.ncAmt)}</div><div class="s">${fmtPct(k1.net?k1.ncAmt/k1.net:null)} of net</div></div>
+    <div class="kpi" style="cursor:pointer" onclick="document.getElementById('selStatus').value='Collected';State.status='Collected';renderAll();" title="Click to filter Collected only"><div class="l">Collected</div><div class="v" style="color:var(--green)">${fmtEGP(k1.colAmt)}</div><div class="s">${fmtPct(k1.net?k1.colAmt/k1.net:null)} of net</div></div>
+    <div class="kpi" style="cursor:pointer" onclick="document.getElementById('selStatus').value='Not Collected';State.status='Not Collected';renderAll();" title="Click to filter Not Collected only"><div class="l">Not collected</div><div class="v" style="color:var(--red)">${fmtEGP(k1.ncAmt)}</div><div class="s">${fmtPct(k1.net?k1.ncAmt/k1.net:null)} of net</div></div>
     <div class="kpi"><div class="l">Collection rate</div><div class="v ${rateCls(k1.rate)}">${fmtPct(k1.rate)}</div><div class="s">${fmtInt(k1.nCol)} / ${fmtInt(k1.n)} orders</div></div>
-    <div class="kpi"><div class="l">Paid before collected (PMT ${State.basis})</div><div class="v" style="color:var(--amber)">${fmtInt(State.basis===2?k2.yesN:k1.yesN)}</div><div class="s">${fmtEGP(State.basis===2?k2.yesAmt:k1.yesAmt)} EGP</div></div>
-    <div class="kpi"><div class="l">Returns</div><div class="v">${fmtInt(k1.nRet)}</div><div class="s">${fmtEGP(k1.retAmt)} EGP</div></div>
+    <div class="kpi" style="cursor:pointer" onclick="document.getElementById('selPBC').value='YES';State.pbc='YES';renderAll();" title="Click to filter Paid Before Collected"><div class="l">Paid before collected (PMT ${State.basis})</div><div class="v" style="color:var(--amber)">${fmtInt(State.basis===2?k2.yesN:k1.yesN)}</div><div class="s">${fmtEGP(State.basis===2?k2.yesAmt:k1.yesAmt)} EGP</div></div>
+    <div class="kpi" style="cursor:pointer" onclick="document.getElementById('selStatus').value='Return';State.status='Return';renderAll();" title="Click to filter Returns only"><div class="l">Returns</div><div class="v">${fmtInt(k1.nRet)}</div><div class="s">${fmtEGP(k1.retAmt)} EGP</div></div>
   </div>`;
   const R=(label,v1,s1,v2,s2,note,added)=>`<tr${added?` style="color:var(--amber)"`:""}>
     <td>${label}${added?' <span class="added-note">· added (not in reference)</span>':""}</td>
