@@ -695,14 +695,9 @@ function deriveRowsCohort(rows,snap,ms,me){
   const out=new Array(rows.length);
   for(let i=0;i<rows.length;i++){
     const r=rows[i];
-    // Cohort override: is this order collected WITHIN the selected month?
     const collectedInPeriod=r.comment==="Collected"&&r.cd!=null&&r.cd<=me;
     const isReturn=r.comment==="Return";
-    // Effective comment for this period
     const effComment=isReturn?"Return":collectedInPeriod?"Collected":"Not Collected";
-    // store origComment for performance tracking
-    const origComment=r.comment;
-
     const pd2=r.pd!=null?r.pd+7:null;
     let d2c=null;
     if(effComment==="Not Collected"){ if((r.grand||0)>0&&r.dd!=null) d2c=snap-r.dd; }
@@ -712,10 +707,10 @@ function deriveRowsCohort(rows,snap,ms,me){
     const c2p2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?pd2 -r.cd:null;
     const cyc2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?r.cd -pd2:null;
     const ch=(r.mp==null&&r.retail==null)?"":(r.mp!=null&&r.retail!=null)?((r.mp>=r.retail)?"MP":"Retail"):(r.mp!=null?"MP":"Retail");
-    out[i]={...r,pd2,d2c,c2p,cyc,c2p2,cyc2,ch,
-      comment:effComment,   // override comment for all downstream analysis
-      origComment:r.comment, // keep original for reference
-      origComment,
+    out[i]={tn:r.tn,tpl:r.tpl,seller:r.seller,mp:r.mp,retail:r.retail,grand:r.grand,coll:r.coll,varc:r.varc,
+      cd:r.cd,dd:r.dd,pd:r.pd,pd2raw:r.pd2raw,
+      pd2,d2c,c2p,cyc,c2p2,cyc2,ch,
+      comment:effComment,origComment:r.comment,
       f1:isReturn?null:(c2p!=null&&c2p<0?"YES":"NO"),
       f2:isReturn?null:(c2p2!=null&&c2p2<0?"YES":"NO"),
       late:isReturn?null:(d2c!=null&&d2c>7?"YES":"NO")};
@@ -723,27 +718,27 @@ function deriveRowsCohort(rows,snap,ms,me){
   return out;
 }
 function applyGlobalFilters(rows){
-  let f=rows;
-  if(State.tpl) f=f.filter(r=>r.tpl===State.tpl);
-  if(State.channel) f=f.filter(r=>r.ch===State.channel);
-  if(State.status) f=f.filter(r=>r.comment===State.status);
-  if(State.seller) f=f.filter(r=>(r.seller||"")=== State.seller);
-  if(State.week) {
-    const wk=+State.week;
-    f=f.filter(r=>r.dd!=null&&weekNumOf(r.dd)===wk);
+  const {tpl,channel,status,seller,week,pbc,basis}=State;
+  if(!tpl&&!channel&&!status&&!seller&&!week&&!pbc) return rows;
+  const wk=week?+week:0;
+  const out=[];
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    if(tpl&&r.tpl!==tpl) continue;
+    if(channel&&r.ch!==channel) continue;
+    if(status&&r.comment!==status) continue;
+    if(seller&&(r.seller||"")!==seller) continue;
+    if(wk&&(r.dd==null||weekNumOf(r.dd)!==wk)) continue;
+    if(pbc){const f=basis===1?r.f1:r.f2;if(f!==pbc)continue;}
+    out.push(r);
   }
-  if(State.pbc) {
-    const b=State.basis;
-    f=f.filter(r=>b===1?(r.f1===State.pbc):(r.f2===State.pbc));
-  }
-  return f;
+  return out;
 }
 function deriveRows(rows,snap){
   const out=new Array(rows.length);
   const retSet=State.returnSet;
   for(let i=0;i<rows.length;i++){
     const r=rows[i];
-    // Apply manual returns
     const effComment=retSet.has(r.tn)?"Return":r.comment;
     const pd2=r.pd!=null?r.pd+7:null;
     let d2c=null;
@@ -755,7 +750,9 @@ function deriveRows(rows,snap){
     const cyc2=(effComment==="Collected"&&r.cd!=null&&pd2!=null)?r.cd -pd2:null;
     const isRet=effComment==="Return";
     const ch=(r.mp==null&&r.retail==null)?"":(r.mp!=null&&r.retail!=null)?((r.mp>=r.retail)?"MP":"Retail"):(r.mp!=null?"MP":"Retail");
-    out[i]={...r,comment:effComment,origComment:r.comment,pd2,d2c,c2p,cyc,c2p2,cyc2,ch,
+    out[i]={tn:r.tn,tpl:r.tpl,seller:r.seller,mp:r.mp,retail:r.retail,grand:r.grand,coll:r.coll,varc:r.varc,
+      cd:r.cd,dd:r.dd,pd:r.pd,pd2raw:r.pd2raw,
+      comment:effComment,origComment:r.comment,pd2,d2c,c2p,cyc,c2p2,cyc2,ch,
       f1:isRet?null:(c2p!=null&&c2p<0?"YES":"NO"),
       f2:isRet?null:(c2p2!=null&&c2p2<0?"YES":"NO"),
       late:isRet?null:(d2c!=null&&d2c>7?"YES":"NO")};
